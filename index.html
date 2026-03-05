@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roskilde Festival 2026 — Kunstner Anbefaler</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎪</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0a08;--surface:#141210;--surface2:#1c1917;--border:#262220;--text:#f0ebe4;--text-dim:#8a8078;--orange:#e8621e;--orange-glow:#ff7b33;--gold:#d4a843;--green:#3ddc84;--ons:#e8621e;--tor:#d4a843;--fre:#c23c2c;--lor:#8b5cf6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.header{text-align:center;padding:3rem 1.5rem 2rem;border-bottom:1px solid var(--border);position:relative}
+.header::after{content:'';position:absolute;bottom:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--orange),transparent)}
+.logo{font-family:'DM Serif Display',serif;font-size:clamp(2rem,6vw,3.5rem);letter-spacing:.05em;text-transform:uppercase;line-height:1}.logo span{color:var(--orange)}
+.subtitle{font-size:.65rem;letter-spacing:.4em;text-transform:uppercase;color:var(--text-dim);margin-top:.75rem}
+.year-badge{display:inline-block;margin-top:1rem;padding:.25rem 1rem;border:1px solid var(--orange);color:var(--orange);font-size:.6rem;letter-spacing:.3em;text-transform:uppercase}
+.data-source{font-size:.5rem;color:var(--text-dim);margin-top:.5rem;letter-spacing:.1em}.data-source.live{color:var(--green)}.data-source.cached{color:var(--gold)}
+.api-section{max-width:600px;margin:2rem auto;padding:0 1.5rem}
+.api-box{background:var(--surface);border:1px solid var(--border);padding:1.25rem}
+.api-box summary{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem}
+.api-box summary::before{content:'⚙'}.api-box summary::-webkit-details-marker{display:none}
+.api-box[open] summary{margin-bottom:1rem;color:var(--text)}
+.api-hint{font-size:.6rem;color:var(--text-dim);line-height:1.6;margin-bottom:.75rem}.api-hint a{color:var(--orange);text-decoration:none}
+.api-row{display:flex;gap:.5rem}
+.api-row input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem}
+.api-row input:focus{outline:none;border-color:var(--orange)}
+.btn-small{background:var(--orange);color:#fff;border:none;padding:.5rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s}.btn-small:hover{background:var(--orange-glow)}
+.api-status{font-size:.6rem;margin-top:.5rem}
+.instructions{max-width:900px;margin:1.5rem auto;padding:0 1.5rem;text-align:center}
+.instructions p{font-size:.7rem;color:var(--text-dim);line-height:1.8}.instructions strong{color:var(--text)}
+.fav-counter{display:inline-flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.5rem 1.25rem;background:var(--surface);border:1px solid var(--border);font-size:.75rem}
+.fav-counter .icon{color:var(--orange);font-size:1rem}.fav-counter .count{color:var(--gold);font-weight:700}
+.loading-indicator{text-align:center;padding:3rem;color:var(--text-dim);font-size:.7rem}
+.loading-indicator::after{content:'';display:inline-block;width:1em;height:1em;border:2px solid var(--orange);border-top-color:transparent;border-radius:50%;margin-left:.5rem;animation:spin .6s linear infinite;vertical-align:middle}
+.day-container{max-width:1200px;margin:0 auto;padding:0 1rem}
+.day-section{margin-bottom:2.5rem}
+.day-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.day-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.day-ons .day-dot{background:var(--ons)}.day-tor .day-dot{background:var(--tor)}.day-fre .day-dot{background:var(--fre)}.day-lor .day-dot{background:var(--lor)}
+.day-name{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--text)}
+.day-date{font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim)}
+.day-count{margin-left:auto;font-size:.55rem;color:var(--text-dim)}.day-count span{color:var(--gold)}
+.sort-indicator{font-size:.5rem;color:var(--text-dim);letter-spacing:.15em;text-transform:uppercase;text-align:right;margin-bottom:.3rem;padding-right:.25rem}
+.scene-grid{display:grid;grid-template-columns:repeat(var(--stage-count,4),1fr);gap:2px}
+.scene-column{display:flex;flex-direction:column;gap:2px}
+.scene-header{background:var(--surface2);border:1px solid var(--border);padding:.35rem .4rem;text-align:center;font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:700;position:sticky;top:0;z-index:10}
+.scene-header.main-stage{color:var(--orange);border-color:rgba(232,98,30,.3)}
+.band-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px}
+.band-card{background:var(--surface);border:1px solid var(--border);padding:.4rem .5rem;cursor:pointer;display:flex;align-items:center;gap:.35rem;transition:all .15s ease;user-select:none}
+.band-card:hover{background:var(--surface2);border-color:#333}
+.band-card.selected{background:rgba(232,98,30,.08);border-color:var(--orange)}
+.band-card.selected .band-icon{opacity:1;transform:scale(1)}.band-card.selected .band-name{color:#fff}
+.band-card.recommended{background:rgba(212,168,67,.06);border-color:var(--gold)}.band-card.recommended .rec-badge{display:flex}
+.band-icon{font-size:.85rem;opacity:.15;transform:scale(.8);transition:all .2s ease;flex-shrink:0;width:1rem;text-align:center}
+.band-card:hover .band-icon{opacity:.4;transform:scale(.9)}
+.band-info{flex:1;min-width:0;display:flex;align-items:center;gap:.35rem}
+.band-text{flex:1;min-width:0}
+.band-time{font-size:.45rem;color:var(--gold);letter-spacing:.05em;display:block;margin-bottom:1px}
+.band-name{font-size:.62rem;color:var(--text-dim);transition:color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.band-card:hover .band-name{color:var(--text)}
+.spotify-link{flex-shrink:0;width:28px;height:28px;opacity:.3;transition:opacity .2s;display:flex;align-items:center;justify-content:center;position:relative;z-index:5;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.spotify-link:hover,.spotify-link:active{opacity:1}
+.spotify-link svg{width:14px;height:14px;fill:#1DB954;pointer-events:none}
+.rec-badge{display:none;align-items:center;justify-content:center;background:var(--gold);color:var(--bg);font-size:.45rem;font-weight:700;padding:.1rem .3rem;flex-shrink:0}
+.headliner-tag{font-size:.4rem;letter-spacing:.1em;color:#fff;text-transform:uppercase;flex-shrink:0;background:var(--orange);padding:.12rem .3rem}
+.recommend-section{max-width:1200px;margin:2rem auto;padding:0 1.5rem;text-align:center}
+.btn-recommend{background:transparent;color:var(--orange);border:2px solid var(--orange);padding:.8rem 2.5rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s ease}
+.btn-recommend:hover:not(:disabled){background:var(--orange);color:#fff;box-shadow:0 0 30px rgba(232,98,30,.3)}
+.btn-recommend:disabled{opacity:.3;cursor:not-allowed}.btn-recommend.loading{pointer-events:none;opacity:.6}
+.btn-recommend.loading::after{content:'';display:inline-block;width:1em;height:1em;border:2px solid var(--orange);border-top-color:transparent;border-radius:50%;margin-left:.75rem;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.action-bar{display:flex;justify-content:center;gap:1rem;margin-top:1.5rem;flex-wrap:wrap}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--text-dim);padding:.4rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .2s}.btn-ghost:hover{border-color:var(--text-dim);color:var(--text)}
+.results-section{max-width:900px;margin:2rem auto;padding:0 1.5rem 4rem}
+.results-header{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;padding-bottom:.75rem;border-bottom:1px solid rgba(212,168,67,.2);text-align:center}
+.result-item{display:flex;align-items:flex-start;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border);animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.result-rank{font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--orange);min-width:2rem;text-align:right;line-height:1.2}
+.result-content{flex:1}
+.result-name{font-size:.8rem;font-weight:700;color:#fff;margin-bottom:.2rem}
+.result-name a{color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.2);transition:border-color .2s}
+.result-name a:hover{border-color:var(--orange);color:var(--orange)}
+.result-day-stage{font-size:.55rem;color:var(--text-dim);margin-bottom:.3rem}.result-day-stage .day-label{padding:.1rem .3rem;font-weight:700;border-radius:2px;font-size:.5rem}
+.result-day-stage .day-ons{background:rgba(232,98,30,.2);color:var(--ons)}.result-day-stage .day-tor{background:rgba(212,168,67,.2);color:var(--tor)}.result-day-stage .day-fre{background:rgba(194,60,44,.2);color:var(--fre)}.result-day-stage .day-lor{background:rgba(139,92,246,.2);color:var(--lor)}
+.result-reason{font-size:.65rem;color:var(--text-dim);line-height:1.6}
+.result-match{font-size:.55rem;color:var(--gold);margin-top:.25rem;letter-spacing:.1em;text-transform:uppercase}
+.footer{text-align:center;padding:2rem;border-top:1px solid var(--border);font-size:.55rem;color:var(--text-dim);letter-spacing:.1em}
+.footer a{color:var(--text-dim);text-decoration:none}.footer a:hover{color:var(--text)}
+@media(max-width:900px){.scene-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.scene-grid{grid-template-columns:1fr}.header{padding:2rem 1rem 1.5rem}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">ROSKILDE <span>FESTIVAL</span></div>
+  <div class="subtitle">27 Juni — 4 Juli 2026 · Roskilde · Danmark</div>
+  <div class="year-badge">AI Kunstner Anbefaler</div>
+  <div class="data-source" id="dataSource">Henter program...</div>
+</div>
+<div class="api-section"><details class="api-box" id="apiBox"><summary>Groq API Nøgle</summary>
+  <p class="api-hint">Gratis AI via <a href="https://console.groq.com" target="_blank">console.groq.com</a> — log ind → API Keys → Create.</p>
+  <div class="api-row"><input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off"><button class="btn-small" onclick="saveApiKey()">Gem</button></div>
+  <div class="api-status" id="apiStatus"></div>
+</details></div>
+<div class="instructions">
+  <p>Tryk <strong>🎵</strong> på de kunstnere du kender og kan lide — vælg så mange du vil.<br>AI'en anbefaler derefter hvilke <strong>andre kunstnere</strong> du bør opleve.</p>
+  <div class="fav-counter"><span class="icon">🎵</span><span>Valgte favoritter: <span class="count" id="favCount">0</span></span></div>
+</div>
+<div class="day-container" id="dayContainer"><div class="loading-indicator">Henter lineup</div></div>
+<div class="recommend-section">
+  <button class="btn-recommend" id="recBtn" onclick="getRecommendations()" disabled>🎪 Find anbefalinger baseret på mine favoritter</button>
+  <div class="action-bar"><button class="btn-ghost" onclick="clearSelections()">Nulstil valg</button><button class="btn-ghost hidden" id="clearRecBtn" onclick="clearRecommendations()">Fjern anbefalinger</button></div>
+</div>
+<div class="results-section hidden" id="results"><div class="results-header">AI Anbefalinger — baseret på dine favoritter</div><div id="resultsList"></div></div>
+<div class="footer">Powered by <a href="https://groq.com" target="_blank">Groq</a> · Data fra <a href="https://www.roskilde-festival.dk/program" target="_blank">roskilde-festival.dk</a> · Ikke-kommerciel fan-side</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — Roskilde Festival 2026
+// Final Days: Ons 1/7 – Lør 4/7
+// Scener: Orange, Arena, Avalon, Gloria, Eos, Pavillon
+// ═══════════════════════════════════════════════════════
+const PROGRAM_URL='https://www.roskilde-festival.dk/program';
+const PROGRAM_EN='https://www.roskilde-festival.dk/en/line-up';
+const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
+const DAYS_CONFIG=[{key:'ons',name:'Onsdag',date:'1. juli'},{key:'tor',name:'Torsdag',date:'2. juli'},{key:'fre',name:'Fredag',date:'3. juli'},{key:'lor',name:'Lørdag',date:'4. juli'}];
+const DAY_MAP={'Wed':'ons','Thu':'tor','Fri':'fre','Sat':'lor','ONS':'ons','TOR':'tor','FRE':'fre','LØR':'lor','Ons':'ons','Tor':'tor','Fre':'fre','Lør':'lor'};
+const STAGES_ORDER=['Orange','Arena','Avalon','Gloria','Eos','Pavillon'];
+const HEADLINER_NAMES=['Gorillaz','The Cure','Zara Larsson','David Byrne','Tobias Rahim'];
+
+// ═══════════════════════════════════════════════════════
+// CACHED LINEUP — marts 2026 snapshot
+// Dag-data fra roskilde-festival.dk (feb 2026 announcement)
+// Scene-data tilføjes når det offentliggøres
+// ═══════════════════════════════════════════════════════
+const CACHED_LINEUP={
+  // ─── ONSDAG 1. JULI ───
+  "The Cure":{day:"ons",stage:"Orange"},"Gorillaz":{day:"ons",stage:""},"Ethel Cain":{day:"ons",stage:""},"Cobrah":{day:"ons",stage:""},"EsDeeKid":{day:"ons",stage:""},"Audrey Nuna":{day:"ons",stage:""},"Brutalismus 3000":{day:"ons",stage:""},"Rochelle Jordan":{day:"ons",stage:""},"Adrian Quesada":{day:"ons",stage:""},"Ata Kak":{day:"ons",stage:""},"Dean Johnson":{day:"ons",stage:""},"Ela Lung":{day:"ons",stage:""},"Folk Bitch Trio":{day:"ons",stage:""},"Iglooghost":{day:"ons",stage:""},"Joshua Idehen":{day:"ons",stage:""},"Milkweed":{day:"ons",stage:""},"Primitive Man":{day:"ons",stage:""},"Snuggle":{day:"ons",stage:""},"The New Eves":{day:"ons",stage:""},"The Sophs":{day:"ons",stage:""},
+  // ─── TORSDAG 2. JULI ───
+  "Zara Larsson":{day:"tor",stage:""},"David Byrne":{day:"tor",stage:""},"Tobias Rahim":{day:"tor",stage:""},"Kneecap":{day:"tor",stage:""},"Little Simz":{day:"tor",stage:""},"Tessa":{day:"tor",stage:""},"Bad Gyal":{day:"tor",stage:""},"Lojay":{day:"tor",stage:""},"Oklou":{day:"tor",stage:""},"Pa Salieu":{day:"tor",stage:""},"Royel Otis":{day:"tor",stage:""},"Sierra Ferrell":{day:"tor",stage:""},"¥ØU$UK€ ¥UK1MAT$U":{day:"tor",stage:""},"Annie & the Caldwells":{day:"tor",stage:""},"Bruno Berle":{day:"tor",stage:""},"DBN Gogo":{day:"tor",stage:""},"Ecca Vandal":{day:"tor",stage:""},"Hypnosis Therapy":{day:"tor",stage:""},"Maruja":{day:"tor",stage:""},"Aphaca":{day:"tor",stage:"Arena"},
+  // ─── FREDAG 3. JULI ───
+  "Addison Rae":{day:"fre",stage:""},"Wolf Alice":{day:"fre",stage:""},"Yung Lean & Bladee":{day:"fre",stage:""},"Lykke Li":{day:"fre",stage:""},"Napalm Death":{day:"fre",stage:""},"Smerz":{day:"fre",stage:""},"Mille":{day:"fre",stage:""},"Guldimund":{day:"fre",stage:""},"Jade":{day:"fre",stage:""},"Jane Remover":{day:"fre",stage:""},"Kettama":{day:"fre",stage:""},"Rizwan-Muazzam Qawwali":{day:"fre",stage:""},"Cat Clyde":{day:"fre",stage:""},"Cortisa Star":{day:"fre",stage:""},"CRRDR":{day:"fre",stage:""},"Dying Wish":{day:"fre",stage:""},"Frost Children":{day:"fre",stage:""},"Jorjiana":{day:"fre",stage:""},"Khana Bierbood":{day:"fre",stage:""},"Kin'Gongolo Kiniata":{day:"fre",stage:""},"Krøyer":{day:"fre",stage:""},"Luisa Almaguer":{day:"fre",stage:""},"Mark William Lewis":{day:"fre",stage:""},"Nick León":{day:"fre",stage:""},"No Joy":{day:"fre",stage:""},"Nourished By Time":{day:"fre",stage:""},"The Zawose Queens":{day:"fre",stage:""},"Titanic":{day:"fre",stage:""},"Tonser":{day:"fre",stage:""},"Vgtbl.pl":{day:"fre",stage:""},"Wicky":{day:"fre",stage:""},"Yerai Cortés":{day:"fre",stage:""},
+  // ─── LØRDAG 4. JULI ───
+  "Lily Allen":{day:"lor",stage:"Orange"},"Clipse":{day:"lor",stage:"Orange"},"Jim Legxacy":{day:"lor",stage:""},"BB Trickz":{day:"lor",stage:""},"KWN":{day:"lor",stage:""},"Liniker":{day:"lor",stage:""},"Los Mirlos":{day:"lor",stage:""},"Los Thuthanaka":{day:"lor",stage:""},"Marwan Moussa":{day:"lor",stage:""},"Sammy Virji":{day:"lor",stage:""},"Uncle Acid & The Deadbeats":{day:"lor",stage:""},"1111":{day:"lor",stage:""},"Chezile":{day:"lor",stage:""},"Griend":{day:"lor",stage:""},"Gwenifer Raymond":{day:"lor",stage:""},"Honningbarna":{day:"lor",stage:""},"Indus":{day:"lor",stage:""},"Lamisi":{day:"lor",stage:""},"Lord Snow":{day:"lor",stage:""},"Madra Salach":{day:"lor",stage:""},"Naïka":{day:"lor",stage:""},"Sara Parkman":{day:"lor",stage:""},"Sherelle":{day:"lor",stage:""},"ŠIROM":{day:"lor",stage:""},"Sorry":{day:"lor",stage:""},"The Callous Daoboys":{day:"lor",stage:""},"Truck Violence":{day:"lor",stage:""},"Tuvaband":{day:"lor",stage:""},"Vanessa Amara":{day:"lor",stage:""},
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let LINEUP={},dataIsLive=false;const selected=new Set(),recommended=new Map();
+
+// ═══════════════════════════════════════════════════════
+// LIVE SCRAPING
+// ═══════════════════════════════════════════════════════
+function fetchWithTimeout(u,ms=10000){const c=new AbortController;const t=setTimeout(()=>c.abort(),ms);return fetch(u,{signal:c.signal}).finally(()=>clearTimeout(t))}
+
+function parseProgram(html){
+  const doc=new DOMParser().parseFromString(html,'text/html'),lineup={};
+  // Roskilde uses Next.js — artist cards are <a> with h2 headings
+  doc.querySelectorAll('a[href*="/program/musik/"], a[href*="/line-up/music/"]').forEach(card=>{
+    const h=card.querySelector('h2');if(!h)return;
+    const name=h.textContent.trim();if(!name||name.length<1)return;
+    // Day/stage/time may appear in card text if RF adds it
+    const text=card.textContent.trim();let day='',stage='',time='';
+    text.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
+      const tm=line.match(/^(\d{1,2}[:.]\d{2})/);if(tm&&!time){time=tm[1].replace('.',':');return}
+      const dm=Object.keys(DAY_MAP).find(d=>line===d||line.startsWith(d));if(dm&&!day){day=DAY_MAP[dm];return}
+      const sm=STAGES_ORDER.find(s=>line.includes(s));if(sm&&!stage)stage=sm;
+    });
+    lineup[name]={day,stage,time:time||''};
+  });
+  return lineup;
+}
+
+async function fetchLiveLineup(){
+  const urls=[PROGRAM_URL,PROGRAM_EN];
+  for(const pu of urls){for(const mk of PROXIES){try{
+    const u=mk(pu),r=await fetchWithTimeout(u,10000);if(!r.ok)continue;
+    const h=await r.text();if(h.length<3000)continue;
+    const p=parseProgram(h);const cnt=Object.keys(p).length;
+    console.log(`[RF] Parsed ${cnt} artists from ${pu.substring(0,40)}`);
+    if(cnt>=20)return p;
+  }catch(e){console.log('[RF] Failed:',e.message)}}}
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+// SPOTIFY + RENDER
+// ═══════════════════════════════════════════════════════
+const SPOTIFY_SVG=`<svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>`;
+function getSpotifyUrl(n){return`https://open.spotify.com/search/${encodeURIComponent(n.replace(/[()]/g,'').trim())}`}
+
+function getActiveStages(){const s=new Set();Object.values(LINEUP).forEach(i=>{if(i.stage)s.add(i.stage)});return STAGES_ORDER.filter(x=>s.has(x))}
+
+function getBandsForDayStage(dk,st){
+  const b=Object.entries(LINEUP).filter(([_,i])=>i.day===dk&&i.stage===st).map(([n,i])=>({name:n,time:i.time||''}));
+  const ht=b.some(x=>x.time);
+  if(ht)b.sort((a,c)=>(a.time||'99:99').localeCompare(c.time||'99:99'));
+  else b.sort((a,c)=>a.name.localeCompare(c.name,'da'));
+  return{bands:b,sortedByTime:ht};
+}
+
+function renderDays(){
+  const c=document.getElementById('dayContainer');c.innerHTML='';
+  const as=getActiveStages(),hasDays=Object.values(LINEUP).some(i=>i.day),hasStages=as.length>0;
+
+  // Render each day
+  DAYS_CONFIG.forEach(day=>{
+    const dayBands=Object.entries(LINEUP).filter(([_,i])=>i.day===day.key);
+    if(!dayBands.length)return;
+    const ht=dayBands.some(([_,i])=>i.time);
+    const s=document.createElement('div');s.className=`day-section day-${day.key}`;
+
+    if(hasStages){
+      // Scene-column layout
+      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">${ht?'↓ Sorteret efter starttid':'↓ Alfabetisk'}</div><div class="scene-grid" style="--stage-count:${as.length}"></div>`;
+      c.appendChild(s);const sg=s.querySelector('.scene-grid');
+      as.forEach((st,i)=>{
+        const col=document.createElement('div');col.className='scene-column';
+        const hdr=document.createElement('div');hdr.className=`scene-header${i===0?' main-stage':''}`;hdr.textContent=st;col.appendChild(hdr);
+        const{bands}=getBandsForDayStage(day.key,st);
+        bands.forEach(b=>renderBandCard({name:b.name,stage:st,time:b.time},col));
+        if(!bands.length){const e=document.createElement('div');e.style.cssText='padding:.4rem;text-align:center;font-size:.5rem;color:#333';e.textContent='—';col.appendChild(e)}
+        sg.appendChild(col);
+      });
+      // Bands on this day without a known stage
+      const noStage=dayBands.filter(([_,i])=>!i.stage).map(([n,i])=>({name:n,stage:'',time:i.time||''})).sort((a,b)=>a.name.localeCompare(b.name,'da'));
+      if(noStage.length){
+        const extra=document.createElement('div');extra.className='band-grid';extra.style.marginTop='4px';
+        noStage.forEach(b=>renderBandCard(b,extra));s.appendChild(extra);
+      }
+    } else {
+      // No scene data — simple grid per day
+      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">↓ Alfabetisk</div><div class="band-grid"></div>`;
+      c.appendChild(s);const g=s.querySelector('.band-grid');
+      dayBands.map(([n,i])=>({name:n,stage:i.stage,time:i.time||''})).sort((a,b)=>a.name.localeCompare(b.name,'da')).forEach(b=>renderBandCard(b,g));
+    }
+  });
+
+  // Unassigned bands
+  const un=Object.entries(LINEUP).filter(([_,i])=>!i.day).map(([n,i])=>({name:n,stage:i.stage})).sort((a,b)=>a.name.localeCompare(b.name,'da'));
+  if(un.length){const s=document.createElement('div');s.className='day-section';
+    s.innerHTML=`<div class="day-header"><div class="day-dot" style="background:#555"></div><div class="day-name">Dag ikke annonceret</div><div class="day-date">TBA</div><div class="day-count"><span>${un.length}</span> kunstnere</div></div><div class="sort-indicator">↓ Alfabetisk</div><div class="band-grid"></div>`;
+    c.appendChild(s);const g=s.querySelector('.band-grid');un.forEach(a=>renderBandCard(a,g));
+  }
+}
+
+function renderBandCard(band,parent){
+  const card=document.createElement('div');card.className='band-card';card.dataset.band=band.name;
+  if(selected.has(band.name))card.classList.add('selected');
+  if(recommended.has(band.name))card.classList.add('recommended');
+  const isHL=HEADLINER_NAMES.includes(band.name);
+  card.innerHTML=`<div class="band-icon">🎵</div><div class="band-info"><div class="band-text">${band.time?`<span class="band-time">${band.time}</span>`:''}<div class="band-name" title="${band.name}">${band.name}</div></div><a href="${getSpotifyUrl(band.name)}" target="_blank" rel="noopener" class="spotify-link" title="Åbn på Spotify">${SPOTIFY_SVG}</a></div>${isHL?'<span class="headliner-tag">HEADLINER</span>':''}<div class="rec-badge">${recommended.has(band.name)?'#'+recommended.get(band.name):''}</div>`;
+  card.addEventListener('click',e=>{if(e.target.closest('a'))return;toggleBand(band.name,card)});
+  parent.appendChild(card);
+}
+
+function toggleBand(b,c){if(selected.has(b)){selected.delete(b);c.classList.remove('selected')}else{selected.add(b);c.classList.add('selected');c.style.transform='scale(1.03)';setTimeout(()=>c.style.transform='',150)}updateCounter()}
+function updateCounter(){document.getElementById('favCount').textContent=selected.size;document.getElementById('recBtn').disabled=selected.size<1}
+function clearSelections(){selected.clear();recommended.clear();renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
+function clearRecommendations(){recommended.clear();renderDays();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
+function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(!k.startsWith('gsk_')){document.getElementById('apiStatus').textContent='✗ Nøglen skal starte med gsk_';document.getElementById('apiStatus').style.color='#c23c2c';return}localStorage.setItem('groq_api_key',k);document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84'}
+
+// ═══════════════════════════════════════════════════════
+// AI RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════
+async function getRecommendations(){
+  const apiKey=localStorage.getItem('groq_api_key')||document.getElementById('apiKey').value.trim();
+  if(!apiKey){document.getElementById('apiBox').setAttribute('open','');document.getElementById('apiStatus').textContent='✗ Indtast Groq API nøgle';document.getElementById('apiStatus').style.color='#c23c2c';return}
+  const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));if(!fav.length)return;
+  const btn=document.getElementById('recBtn');btn.classList.add('loading');btn.textContent='🎵 AI analyserer din musiksmag...';
+  const rl=rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
+  const prompt=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 10 bedste kunstnere fra den øvrige liste baseret på brugerens musiksmag. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 10.`;
+  try{
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.5,max_tokens:4000})});
+    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API fejl')}
+    const data=await r.json();let clean=data.choices[0].message.content.trim().replace(/```json\s?/g,'').replace(/```/g,'').trim();
+    let recs;try{recs=JSON.parse(clean)}catch(e){const m=clean.match(/\[[\s\S]*\]/);if(m)clean=m[0];clean=clean.replace(/,\s*([}\]])/g,'$1').replace(/\n/g,' ');if(!clean.endsWith(']')){const lb=clean.lastIndexOf('}');if(lb>0)clean=clean.substring(0,lb+1)+']'}clean=clean.replace(/,\s*([}\]])/g,'$1');try{recs=JSON.parse(clean)}catch{throw new Error('AI returnerede ugyldigt svar. Prøv igen.')}}
+    if(!Array.isArray(recs)||!recs.length)throw new Error('Tomt svar. Prøv igen.');
+    displayRecommendations(recs);
+  }catch(err){console.error(err);alert('Fejl: '+err.message)}finally{btn.classList.remove('loading');btn.textContent='🎪 Find anbefalinger baseret på mine favoritter'}
+}
+
+function displayRecommendations(recs){
+  recommended.clear();recs.forEach(r=>{const m=Object.keys(LINEUP).find(b=>b.toLowerCase()===r.band.toLowerCase());if(m)recommended.set(m,r.rank)});renderDays();
+  const res=document.getElementById('results'),list=document.getElementById('resultsList');res.classList.remove('hidden');list.innerHTML='';
+  recs.forEach((r,i)=>{
+    const bk=Object.keys(LINEUP).find(b=>b.toLowerCase()===r.band.toLowerCase()),info=bk?LINEUP[bk]:null,dayObj=info?DAYS_CONFIG.find(d=>d.key===info.day):null;
+    const slug=r.band.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const item=document.createElement('div');item.className='result-item';item.style.animationDelay=`${i*.05}s`;
+    item.innerHTML=`<div class="result-rank">${r.rank}</div><div class="result-content"><div class="result-name"><a href="https://www.roskilde-festival.dk/program/musik/${slug}/" target="_blank">${r.band}</a> <a href="${getSpotifyUrl(r.band)}" target="_blank" class="spotify-link" style="display:inline-flex;vertical-align:middle;margin-left:.3rem">${SPOTIFY_SVG}</a></div>${dayObj?`<div class="result-day-stage"><span class="day-label day-${info.day}">${dayObj.name}</span>${info.stage?' · '+info.stage:''}</div>`:''}<div class="result-reason">${r.reason}</div><div class="result-match">${r.match} match</div></div>`;
+    list.appendChild(item);
+  });
+  document.getElementById('clearRecBtn').classList.remove('hidden');res.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+async function init(){
+  const sk=localStorage.getItem('groq_api_key');
+  if(sk){document.getElementById('apiKey').value=sk;document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84';document.getElementById('apiBox').removeAttribute('open')}
+  const src=document.getElementById('dataSource');
+  const live=await fetchLiveLineup();
+  if(live&&Object.keys(live).length>=20){
+    // Merge live data with cached day/stage info for artists that have it
+    LINEUP={};
+    for(const[name,info]of Object.entries(live)){
+      const cached=CACHED_LINEUP[name];
+      LINEUP[name]={
+        day:info.day||cached?.day||'',
+        stage:info.stage||cached?.stage||'',
+        time:info.time||cached?.time||''
+      };
+    }
+    // Also add any cached artists not in live (shouldn't happen but safety net)
+    for(const[name,info]of Object.entries(CACHED_LINEUP)){
+      if(!LINEUP[name])LINEUP[name]=info;
+    }
+    dataIsLive=true;
+    src.textContent=`✓ Live data — ${Object.keys(LINEUP).length} kunstnere`;src.className='data-source live';
+  }else{
+    LINEUP={...CACHED_LINEUP};
+    src.textContent=`⚠ Cached data (marts 2026) — ${Object.keys(LINEUP).length} kunstnere`;src.className='data-source cached';
+  }
+  renderDays();updateCounter();
+}
+init();
+</script>
+</body>
+</html>
