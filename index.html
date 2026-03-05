@@ -158,33 +158,111 @@ let LINEUP={},dataIsLive=false;const selected=new Set(),recommended=new Map();
 function fetchWithTimeout(u,ms=10000){const c=new AbortController;const t=setTimeout(()=>c.abort(),ms);return fetch(u,{signal:c.signal}).finally(()=>clearTimeout(t))}
 
 function parseProgram(html){
-  const doc=new DOMParser().parseFromString(html,'text/html'),lineup={};
-  // Roskilde uses Next.js — artist cards are <a> with h2 headings
+  const doc=new DOMParser().parseFromString(html,'text/html'),artists=[];
+  // Extract artist name + slug from program page links
   doc.querySelectorAll('a[href*="/program/musik/"], a[href*="/line-up/music/"]').forEach(card=>{
     const h=card.querySelector('h2');if(!h)return;
     const name=h.textContent.trim();if(!name||name.length<1)return;
-    // Day/stage/time may appear in card text if RF adds it
-    const text=card.textContent.trim();let day='',stage='',time='';
-    text.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
-      const tm=line.match(/^(\d{1,2}[:.]\d{2})/);if(tm&&!time){time=tm[1].replace('.',':');return}
-      const dm=Object.keys(DAY_MAP).find(d=>line===d||line.startsWith(d));if(dm&&!day){day=DAY_MAP[dm];return}
-      const sm=STAGES_ORDER.find(s=>line.includes(s));if(sm&&!stage)stage=sm;
-    });
-    lineup[name]={day,stage,time:time||''};
+    const href=card.getAttribute('href')||'';
+    const slugMatch=href.match(/\/(?:program\/musik|line-up\/music)\/([^/]+)/);
+    const slug=slugMatch?slugMatch[1]:'';
+    artists.push({name,slug});
   });
-  return lineup;
+  return artists;
+}
+
+// Parse an individual artist page for day + stage
+function parseArtistPage(html){
+  let day='',stage='',time='';
+  const dayMap={onsdag:'ons',torsdag:'tor',fredag:'fre',lørdag:'lor',wednesday:'ons',thursday:'tor',friday:'fre',saturday:'lor'};
+  // Day pattern: "TORSDAG 2. JULI" or "Onsdag 1. juli"
+  const dayMatch=html.match(/(mandag|tirsdag|onsdag|torsdag|fredag|lørdag|monday|tuesday|wednesday|thursday|friday|saturday)\s+\d+/i);
+  if(dayMatch)day=dayMap[dayMatch[1].toLowerCase()]||'';
+  // Stage pattern: "Orange Scene" or just stage name near day info
+  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon)\s*(?:Scene|Stage)?/i);
+  if(stageMatch){
+    const s=stageMatch[1].toLowerCase();
+    stage=s.charAt(0).toUpperCase()+s.slice(1);
+  }
+  // Time pattern: "14:30" or "14.30"
+  const timeMatch=html.match(/(\d{1,2})[.:](\d{2})\s*[-–]\s*\d{1,2}[.:]\d{2}/);
+  if(timeMatch)time=`${timeMatch[1]}:${timeMatch[2]}`;
+  return{day,stage,time};
 }
 
 async function fetchLiveLineup(){
+  // Step 1: get artist list from program page
   const urls=[PROGRAM_URL,PROGRAM_EN];
+  let artists=null;
   for(const pu of urls){for(const mk of PROXIES){try{
     const u=mk(pu),r=await fetchWithTimeout(u,10000);if(!r.ok)continue;
     const h=await r.text();if(h.length<3000)continue;
-    const p=parseProgram(h);const cnt=Object.keys(p).length;
-    console.log(`[RF] Parsed ${cnt} artists from ${pu.substring(0,40)}`);
-    if(cnt>=20)return p;
-  }catch(e){console.log('[RF] Failed:',e.message)}}}
-  return null;
+    const a=parseProgram(h);
+    console.log(`[RF] Found ${a.length} artists from ${pu.substring(0,40)}`);
+    if(a.length>=20){artists=a;break}
+  }catch(e){console.log('[RF] Program fetch failed:',e.message)}}
+  if(artists)break}
+  return artists; // array of {name, slug}
+}
+
+// Step 2: progressively fetch individual artist pages for day+stage
+async function enrichArtistData(){
+  const src=document.getElementById('dataSource');
+  const allNames=Object.keys(LINEUP);
+  let enriched=0,total=allNames.length;
+
+  // Build slug for each artist
+  function makeSlug(name){
+    return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+
+  // Process in batches of 6 concurrent requests
+  const BATCH=6;
+  for(let i=0;i<allNames.length;i+=BATCH){
+    const batch=allNames.slice(i,i+BATCH);
+    const promises=batch.map(async name=>{
+      // Skip if already have day+stage from cache or prior fetch
+      if(LINEUP[name].day && LINEUP[name].stage)return;
+
+      // Try to find slug from live data or generate it
+      const slug=LINEUP[name]._slug||makeSlug(name);
+      const pageUrl=`https://www.roskilde-festival.dk/program/musik/${slug}`;
+
+      for(const mk of PROXIES){
+        try{
+          const u=mk(pageUrl);
+          const r=await fetchWithTimeout(u,8000);
+          if(!r.ok)continue;
+          const html=await r.text();
+          if(html.length<500)continue;
+          const info=parseArtistPage(html);
+          if(info.day)LINEUP[name].day=info.day;
+          if(info.stage)LINEUP[name].stage=info.stage;
+          if(info.time)LINEUP[name].time=info.time;
+          enriched++;
+          break; // success, stop trying proxies
+        }catch(e){}
+      }
+    });
+    await Promise.all(promises);
+
+    // Update status text after every batch, but only re-render every 3rd batch
+    src.textContent=`🔄 Henter dag/scene... ${Math.min(i+BATCH,total)}/${total}`;
+    if((i/BATCH)%3===2 || i+BATCH>=allNames.length){
+      renderDays();updateCounter();
+    }
+
+    // Small delay between batches to avoid rate limits
+    if(i+BATCH<allNames.length)await new Promise(r=>setTimeout(r,200));
+  }
+
+  // Final status
+  const withDay=Object.values(LINEUP).filter(i=>i.day).length;
+  const withStage=Object.values(LINEUP).filter(i=>i.stage).length;
+  src.textContent=`✓ ${total} kunstnere · ${withDay} med dag · ${withStage} med scene`;
+  src.className='data-source live';
+  renderDays();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -309,29 +387,43 @@ async function init(){
   const sk=localStorage.getItem('groq_api_key');
   if(sk){document.getElementById('apiKey').value=sk;document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84';document.getElementById('apiBox').removeAttribute('open')}
   const src=document.getElementById('dataSource');
-  const live=await fetchLiveLineup();
-  if(live&&Object.keys(live).length>=20){
-    // Merge live data with cached day/stage info for artists that have it
+
+  // Step 1: try to get artist list from program page
+  src.textContent='Henter kunstnerliste fra roskilde-festival.dk...';
+  const liveArtists=await fetchLiveLineup();
+
+  if(liveArtists&&liveArtists.length>=20){
+    // Build LINEUP from live names, merged with cached day/stage
     LINEUP={};
-    for(const[name,info]of Object.entries(live)){
+    for(const{name,slug}of liveArtists){
       const cached=CACHED_LINEUP[name];
       LINEUP[name]={
-        day:info.day||cached?.day||'',
-        stage:info.stage||cached?.stage||'',
-        time:info.time||cached?.time||''
+        day:cached?.day||'',
+        stage:cached?.stage||'',
+        time:cached?.time||'',
+        _slug:slug // keep slug for artist page fetching
       };
     }
-    // Also add any cached artists not in live (shouldn't happen but safety net)
+    // Add cached artists not found in live scrape (safety net)
     for(const[name,info]of Object.entries(CACHED_LINEUP)){
-      if(!LINEUP[name])LINEUP[name]=info;
+      if(!LINEUP[name])LINEUP[name]={...info};
     }
     dataIsLive=true;
-    src.textContent=`✓ Live data — ${Object.keys(LINEUP).length} kunstnere`;src.className='data-source live';
+    src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere hentet — henter dag/scene...`;
+    src.className='data-source live';
   }else{
     LINEUP={...CACHED_LINEUP};
-    src.textContent=`⚠ Cached data (marts 2026) — ${Object.keys(LINEUP).length} kunstnere`;src.className='data-source cached';
+    src.textContent=`⚠ Cached data (marts 2026) — ${Object.keys(LINEUP).length} kunstnere`;
+    src.className='data-source cached';
   }
+
+  // Render immediately with whatever data we have
   renderDays();updateCounter();
+
+  // Step 2: progressively enrich with day/stage from individual artist pages
+  if(dataIsLive){
+    enrichArtistData();
+  }
 }
 init();
 </script>
