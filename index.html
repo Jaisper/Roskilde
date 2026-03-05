@@ -185,18 +185,37 @@ function parseProgram(html){
 function parseArtistPage(html){
   let day='',stage='',time='';
   const dayMap={onsdag:'ons',torsdag:'tor',fredag:'fre',lørdag:'lor',wednesday:'ons',thursday:'tor',friday:'fre',saturday:'lor'};
-  // Day pattern: "TORSDAG 2. JULI" or "Onsdag 1. juli"
-  const dayMatch=html.match(/(mandag|tirsdag|onsdag|torsdag|fredag|lørdag|monday|tuesday|wednesday|thursday|friday|saturday)\s+\d+/i);
-  if(dayMatch)day=dayMap[dayMatch[1].toLowerCase()]||'';
-  // Stage pattern: "Orange Scene" or just stage name near day info
-  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon)\s*(?:Scene|Stage)?/i);
+
+  // Day: match "TORSDAG 2. JULI" or "Torsdag 2. juli" — must include month
+  const dayMatch=html.match(/(onsdag|torsdag|fredag|lørdag|wednesday|thursday|friday|saturday)\s+\d+\.\s*(juli|july)/i);
+  if(dayMatch) day=dayMap[dayMatch[1].toLowerCase()]||'';
+
+  // Stage: match "Orange Scene" pattern from bullet list
+  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon)\s+Scene/i);
   if(stageMatch){
-    const s=stageMatch[1].toLowerCase();
-    stage=s.charAt(0).toUpperCase()+s.slice(1);
+    stage=stageMatch[1].charAt(0).toUpperCase()+stageMatch[1].slice(1).toLowerCase();
+    if(stage==='Orange') stage='Orange';
   }
-  // Time pattern: "14:30" or "14.30"
-  const timeMatch=html.match(/(\d{1,2})[.:](\d{2})\s*[-–]\s*\d{1,2}[.:]\d{2}/);
-  if(timeMatch)time=`${timeMatch[1]}:${timeMatch[2]}`;
+  // Fallback: match "på Orange Scene" or "indtager Orange Scene" from body text
+  if(!stage){
+    const fallback=html.match(/(?:på|indtager|spiller|gæster)\s+(Orange|Arena|Avalon|Gloria|Eos|Pavillon)\s+Scene/i);
+    if(fallback){
+      stage=fallback[1].charAt(0).toUpperCase()+fallback[1].slice(1).toLowerCase();
+      if(stage==='Orange') stage='Orange';
+    }
+  }
+
+  // Time: ONLY match actual concert times like "21:00 – 22:30" (with surrounding context)
+  // Do NOT match random numbers from URLs/timestamps
+  const timeMatch=html.match(/(?:kl\.?\s*)?(\d{1,2})[.:](\d{2})\s*[-–]\s*(\d{1,2})[.:](\d{2})(?:\s|<|$)/);
+  if(timeMatch){
+    const h=parseInt(timeMatch[1]),m=parseInt(timeMatch[2]);
+    // Sanity check: concert times are between 10:00 and 04:00
+    if((h>=10 && h<=23)||(h>=0 && h<=4)){
+      time=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+  }
+
   return{day,stage,time};
 }
 
@@ -226,8 +245,8 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Check sessionStorage cache first
-  const cacheKey='rf26_artist_data';
+  // Check sessionStorage cache first (clear if version changed)
+  const cacheKey='rf26_artist_data_v2';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
