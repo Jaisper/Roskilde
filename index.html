@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎪</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c0a08;--surface:#141210;--surface2:#1c1917;--border:#262220;--text:#f0ebe4;--text-dim:#8a8078;--orange:#e8621e;--orange-glow:#ff7b33;--gold:#d4a843;--green:#3ddc84;--ons:#e8621e;--tor:#d4a843;--fre:#c23c2c;--lor:#8b5cf6}
+:root{--bg:#1a0e00;--surface:#241500;--surface2:#2e1c05;--border:#3d2a10;--text:#f0ebe4;--text-dim:#a08868;--orange:#e8621e;--orange-glow:#ff7b33;--gold:#d4a843;--green:#3ddc84;--ons:#e8621e;--tor:#d4a843;--fre:#c23c2c;--lor:#8b5cf6}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
@@ -48,6 +48,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .scene-header{background:var(--surface2);border:1px solid var(--border);padding:.35rem .4rem;text-align:center;font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:700;position:sticky;top:0;z-index:10}
 .scene-header.main-stage{color:var(--orange);border-color:rgba(232,98,30,.3)}
 .band-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px}
+.stage-block{margin-bottom:0.75rem}
+.stage-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .6rem;background:var(--surface2);border:1px solid var(--border);margin-bottom:2px;font-weight:700}
+.stage-label.main-stage{color:var(--orange);border-color:rgba(232,98,30,.4);background:rgba(232,98,30,.08)}
+.stage-label.unknown-label{color:#665540;font-style:italic;border-style:dashed}
 .band-card{background:var(--surface);border:1px solid var(--border);padding:.4rem .5rem;cursor:pointer;display:flex;align-items:center;gap:.35rem;transition:all .15s ease;user-select:none}
 .band-card:hover{background:var(--surface2);border-color:#333}
 .band-card.selected{background:rgba(232,98,30,.08);border-color:var(--orange)}
@@ -382,49 +386,56 @@ function getBandsForDayStage(dk,st){
 
 function renderDays(){
   const c=document.getElementById('dayContainer');c.innerHTML='';
-  const as=getActiveStages(),hasDays=Object.values(LINEUP).some(i=>i.day);
 
-  // Only use scene-column layout when >=50% of day-assigned bands have a stage
-  const bandsWithDay=Object.values(LINEUP).filter(i=>i.day);
-  const bandsWithStage=bandsWithDay.filter(i=>i.stage);
-  const useSceneLayout=as.length>=2 && bandsWithStage.length >= 5;
-
-  // Render each day
   DAYS_CONFIG.forEach(day=>{
     const dayBands=Object.entries(LINEUP).filter(([_,i])=>i.day===day.key);
     if(!dayBands.length)return;
     const ht=dayBands.some(([_,i])=>i.time);
-    const s=document.createElement('div');s.className=`day-section day-${day.key}`;
 
-    if(useSceneLayout){
-      // Scene-column layout
-      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">${ht?'↓ Sorteret efter starttid':'↓ Alfabetisk'}</div><div class="scene-grid" style="--stage-count:${as.length}"></div>`;
-      c.appendChild(s);const sg=s.querySelector('.scene-grid');
-      as.forEach((st,i)=>{
-        const col=document.createElement('div');col.className='scene-column';
-        const hdr=document.createElement('div');hdr.className=`scene-header${i===0?' main-stage':''}`;hdr.textContent=st;col.appendChild(hdr);
-        const{bands}=getBandsForDayStage(day.key,st);
-        bands.forEach(b=>renderBandCard({name:b.name,stage:st,time:b.time},col));
-        if(!bands.length){const e=document.createElement('div');e.style.cssText='padding:.4rem;text-align:center;font-size:.5rem;color:#333';e.textContent='—';col.appendChild(e)}
-        sg.appendChild(col);
-      });
-      // Bands on this day without a known stage
-      const noStage=dayBands.filter(([_,i])=>!i.stage).map(([n,i])=>({name:n,stage:'',time:i.time||''})).sort((a,b)=>a.name.localeCompare(b.name,'da'));
-      if(noStage.length){
-        const extra=document.createElement('div');extra.className='band-grid';extra.style.marginTop='4px';
-        noStage.forEach(b=>renderBandCard(b,extra));s.appendChild(extra);
-      }
-    } else {
-      // Simple grid per day (no scene columns)
-      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">${ht?'↓ Sorteret efter starttid':'↓ Alfabetisk'}</div><div class="band-grid"></div>`;
-      c.appendChild(s);const g=s.querySelector('.band-grid');
-      dayBands.map(([n,i])=>({name:n,stage:i.stage,time:i.time||''})).sort((a,b)=>a.name.localeCompare(b.name,'da')).forEach(b=>renderBandCard(b,g));
+    const s=document.createElement('div');s.className=`day-section day-${day.key}`;
+    s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div>`;
+    c.appendChild(s);
+
+    // Group bands by stage
+    const byStage={};
+    dayBands.forEach(([name,info])=>{
+      const st=info.stage||'_unknown';
+      if(!byStage[st])byStage[st]=[];
+      byStage[st].push({name,time:info.time||''});
+    });
+
+    // Render known stages first (in order)
+    STAGES_ORDER.forEach(stage=>{
+      if(!byStage[stage]||!byStage[stage].length)return;
+      const bands=byStage[stage];
+      if(ht)bands.sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+      else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
+
+      const block=document.createElement('div');block.className='stage-block';
+      block.innerHTML=`<div class="stage-label${stage==='Orange'?' main-stage':''}">${stage} Scene</div><div class="band-grid"></div>`;
+      const grid=block.querySelector('.band-grid');
+      bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},grid));
+      s.appendChild(block);
+    });
+
+    // Render unknown stage bands
+    if(byStage['_unknown']&&byStage['_unknown'].length){
+      const bands=byStage['_unknown'];
+      if(ht)bands.sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+      else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
+
+      const block=document.createElement('div');block.className='stage-block unknown';
+      block.innerHTML=`<div class="stage-label unknown-label">Scene ikke annonceret</div><div class="sort-indicator">${ht?'↓ Starttid':'↓ Alfabetisk'}</div><div class="band-grid"></div>`;
+      const grid=block.querySelector('.band-grid');
+      bands.forEach(b=>renderBandCard({name:b.name,stage:'',time:b.time},grid));
+      s.appendChild(block);
     }
   });
 
-  // Unassigned bands
+  // Unassigned day
   const un=Object.entries(LINEUP).filter(([_,i])=>!i.day).map(([n,i])=>({name:n,stage:i.stage})).sort((a,b)=>a.name.localeCompare(b.name,'da'));
-  if(un.length){const s=document.createElement('div');s.className='day-section';
+  if(un.length){
+    const s=document.createElement('div');s.className='day-section';
     s.innerHTML=`<div class="day-header"><div class="day-dot" style="background:#555"></div><div class="day-name">Dag ikke annonceret</div><div class="day-date">TBA</div><div class="day-count"><span>${un.length}</span> kunstnere</div></div><div class="sort-indicator">↓ Alfabetisk</div><div class="band-grid"></div>`;
     c.appendChild(s);const g=s.querySelector('.band-grid');un.forEach(a=>renderBandCard(a,g));
   }
