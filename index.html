@@ -271,16 +271,22 @@ async function enrichArtistData(){
   const testUrl='https://www.roskilde-festival.dk/program/musik/gorillaz';
   for(const mk of PROXIES){
     try{
+      console.log(`[RF] Testing proxy: ${mk('TEST').substring(0,50)}...`);
       const r=await fetchWithTimeout(mk(testUrl),6000);
       if(r.ok){
         const html=await r.text();
-        if(html.includes('Orange Scene')||html.includes('TORSDAG')){
+        const hasDay=html.includes('TORSDAG')||html.includes('Torsdag');
+        const hasStage=html.includes('Orange Scene');
+        console.log(`[RF] Proxy response: ${html.length} chars, hasDay=${hasDay}, hasStage=${hasStage}`);
+        if(hasDay&&hasStage){
           workingProxy=mk;
-          console.log('[RF] Working proxy found');
+          console.log('[RF] ✓ Working proxy found!');
           break;
+        } else {
+          console.log('[RF] ✗ Proxy returns HTML but without SSR data (empty Next.js shell)');
         }
       }
-    }catch(e){}
+    }catch(e){console.log(`[RF] ✗ Proxy failed: ${e.message}`)}
   }
 
   if(!workingProxy){
@@ -306,16 +312,25 @@ async function enrichArtistData(){
       const pageUrl=`https://www.roskilde-festival.dk/program/musik/${slug}`;
       try{
         const r=await fetchWithTimeout(workingProxy(pageUrl),8000);
-        if(!r.ok)return;
+        if(!r.ok){console.log(`[RF] ${name}: HTTP ${r.status}`);return}
         const html=await r.text();
-        if(html.length<500)return;
+        if(html.length<500){console.log(`[RF] ${name}: too short (${html.length})`);return}
         const info=parseArtistPage(html);
+        if(!info.day&&!info.stage){
+          // Debug: check what proxy returned
+          const hasJuli=html.includes('juli')||html.includes('Juli')||html.includes('JULI');
+          const hasScene=html.includes('Scene')||html.includes('scene');
+          console.log(`[RF] ${name}: NO MATCH (html=${html.length}ch, hasJuli=${hasJuli}, hasScene=${hasScene})`);
+          if(!hasJuli)console.log(`[RF] ${name}: proxy returned shell without SSR data`);
+        } else {
+          console.log(`[RF] ✓ ${name}: ${info.day}/${info.stage}`);
+        }
         if(info.day)LINEUP[name].day=info.day;
         if(info.stage)LINEUP[name].stage=info.stage;
         if(info.time)LINEUP[name].time=info.time;
         newCache[name]={day:info.day,stage:info.stage,time:info.time};
         fetched++;
-      }catch(e){}
+      }catch(e){console.log(`[RF] ${name}: error ${e.message}`)}
     });
     await Promise.all(promises);
 
