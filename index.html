@@ -387,7 +387,7 @@ function renderDays(){
   // Only use scene-column layout when >=50% of day-assigned bands have a stage
   const bandsWithDay=Object.values(LINEUP).filter(i=>i.day);
   const bandsWithStage=bandsWithDay.filter(i=>i.stage);
-  const useSceneLayout=as.length>=2 && bandsWithStage.length >= bandsWithDay.length * 0.5;
+  const useSceneLayout=as.length>=2 && bandsWithStage.length >= 5;
 
   // Render each day
   DAYS_CONFIG.forEach(day=>{
