@@ -132,20 +132,30 @@ const STAGES_ORDER=['Orange','Arena','Avalon','Gloria','Eos','Pavillon'];
 const HEADLINER_NAMES=['Gorillaz','The Cure','Zara Larsson','David Byrne','Tobias Rahim'];
 
 // ═══════════════════════════════════════════════════════
-// CACHED LINEUP — marts 2026 snapshot
-// Dag-data fra roskilde-festival.dk (feb 2026 announcement)
-// Scene-data tilføjes når det offentliggøres
+// CACHED LINEUP — kun kunstnernavne som fallback
+// Dag + scene hentes ALTID live fra individuelle kunstnersider
 // ═══════════════════════════════════════════════════════
-const CACHED_LINEUP={
-  // ─── ONSDAG 1. JULI ───
-  "The Cure":{day:"ons",stage:"Orange"},"Gorillaz":{day:"ons",stage:""},"Ethel Cain":{day:"ons",stage:""},"Cobrah":{day:"ons",stage:""},"EsDeeKid":{day:"ons",stage:""},"Audrey Nuna":{day:"ons",stage:""},"Brutalismus 3000":{day:"ons",stage:""},"Rochelle Jordan":{day:"ons",stage:""},"Adrian Quesada":{day:"ons",stage:""},"Ata Kak":{day:"ons",stage:""},"Dean Johnson":{day:"ons",stage:""},"Ela Lung":{day:"ons",stage:""},"Folk Bitch Trio":{day:"ons",stage:""},"Iglooghost":{day:"ons",stage:""},"Joshua Idehen":{day:"ons",stage:""},"Milkweed":{day:"ons",stage:""},"Primitive Man":{day:"ons",stage:""},"Snuggle":{day:"ons",stage:""},"The New Eves":{day:"ons",stage:""},"The Sophs":{day:"ons",stage:""},
-  // ─── TORSDAG 2. JULI ───
-  "Zara Larsson":{day:"tor",stage:""},"David Byrne":{day:"tor",stage:""},"Tobias Rahim":{day:"tor",stage:""},"Kneecap":{day:"tor",stage:""},"Little Simz":{day:"tor",stage:""},"Tessa":{day:"tor",stage:""},"Bad Gyal":{day:"tor",stage:""},"Lojay":{day:"tor",stage:""},"Oklou":{day:"tor",stage:""},"Pa Salieu":{day:"tor",stage:""},"Royel Otis":{day:"tor",stage:""},"Sierra Ferrell":{day:"tor",stage:""},"¥ØU$UK€ ¥UK1MAT$U":{day:"tor",stage:""},"Annie & the Caldwells":{day:"tor",stage:""},"Bruno Berle":{day:"tor",stage:""},"DBN Gogo":{day:"tor",stage:""},"Ecca Vandal":{day:"tor",stage:""},"Hypnosis Therapy":{day:"tor",stage:""},"Maruja":{day:"tor",stage:""},"Aphaca":{day:"tor",stage:"Arena"},
-  // ─── FREDAG 3. JULI ───
-  "Addison Rae":{day:"fre",stage:""},"Wolf Alice":{day:"fre",stage:""},"Yung Lean & Bladee":{day:"fre",stage:""},"Lykke Li":{day:"fre",stage:""},"Napalm Death":{day:"fre",stage:""},"Smerz":{day:"fre",stage:""},"Mille":{day:"fre",stage:""},"Guldimund":{day:"fre",stage:""},"Jade":{day:"fre",stage:""},"Jane Remover":{day:"fre",stage:""},"Kettama":{day:"fre",stage:""},"Rizwan-Muazzam Qawwali":{day:"fre",stage:""},"Cat Clyde":{day:"fre",stage:""},"Cortisa Star":{day:"fre",stage:""},"CRRDR":{day:"fre",stage:""},"Dying Wish":{day:"fre",stage:""},"Frost Children":{day:"fre",stage:""},"Jorjiana":{day:"fre",stage:""},"Khana Bierbood":{day:"fre",stage:""},"Kin'Gongolo Kiniata":{day:"fre",stage:""},"Krøyer":{day:"fre",stage:""},"Luisa Almaguer":{day:"fre",stage:""},"Mark William Lewis":{day:"fre",stage:""},"Nick León":{day:"fre",stage:""},"No Joy":{day:"fre",stage:""},"Nourished By Time":{day:"fre",stage:""},"The Zawose Queens":{day:"fre",stage:""},"Titanic":{day:"fre",stage:""},"Tonser":{day:"fre",stage:""},"Vgtbl.pl":{day:"fre",stage:""},"Wicky":{day:"fre",stage:""},"Yerai Cortés":{day:"fre",stage:""},
-  // ─── LØRDAG 4. JULI ───
-  "Lily Allen":{day:"lor",stage:"Orange"},"Clipse":{day:"lor",stage:"Orange"},"Jim Legxacy":{day:"lor",stage:""},"BB Trickz":{day:"lor",stage:""},"KWN":{day:"lor",stage:""},"Liniker":{day:"lor",stage:""},"Los Mirlos":{day:"lor",stage:""},"Los Thuthanaka":{day:"lor",stage:""},"Marwan Moussa":{day:"lor",stage:""},"Sammy Virji":{day:"lor",stage:""},"Uncle Acid & The Deadbeats":{day:"lor",stage:""},"1111":{day:"lor",stage:""},"Chezile":{day:"lor",stage:""},"Griend":{day:"lor",stage:""},"Gwenifer Raymond":{day:"lor",stage:""},"Honningbarna":{day:"lor",stage:""},"Indus":{day:"lor",stage:""},"Lamisi":{day:"lor",stage:""},"Lord Snow":{day:"lor",stage:""},"Madra Salach":{day:"lor",stage:""},"Naïka":{day:"lor",stage:""},"Sara Parkman":{day:"lor",stage:""},"Sherelle":{day:"lor",stage:""},"ŠIROM":{day:"lor",stage:""},"Sorry":{day:"lor",stage:""},"The Callous Daoboys":{day:"lor",stage:""},"Truck Violence":{day:"lor",stage:""},"Tuvaband":{day:"lor",stage:""},"Vanessa Amara":{day:"lor",stage:""},
-};
+const CACHED_NAMES=[
+  "Gorillaz","The Cure","Zara Larsson","Addison Rae","David Byrne","Ethel Cain",
+  "Kneecap","Lily Allen","Little Simz","Lykke Li","Tessa","Tobias Rahim",
+  "Wolf Alice","Yung Lean & Bladee","Aphaca","Audrey Nuna","Bad Gyal","BB Trickz",
+  "Brutalismus 3000","Clipse","Cobrah","DBN Gogo","EsDeeKid","Guldimund","Jade",
+  "Jane Remover","Jim Legxacy","Kettama","KWN","Liniker","Lojay","Los Mirlos",
+  "Los Thuthanaka","Marwan Moussa","Mille","Napalm Death","Oklou","Pa Salieu",
+  "Rizwan-Muazzam Qawwali","Rochelle Jordan","Royel Otis","Sammy Virji",
+  "Sierra Ferrell","Smerz","Uncle Acid & The Deadbeats","¥ØU$UK€ ¥UK1MAT$U",
+  "1111","Adrian Quesada","Annie & the Caldwells","Ata Kak","Bruno Berle",
+  "Cat Clyde","Chezile","Cortisa Star","CRRDR","Dean Johnson","Dying Wish",
+  "Ecca Vandal","Ela Lung","Folk Bitch Trio","Frost Children","Griend",
+  "Gwenifer Raymond","Honningbarna","Hypnosis Therapy","Iglooghost","Indus",
+  "Jorjiana","Joshua Idehen","Khana Bierbood","Kin'Gongolo Kiniata","Krøyer",
+  "Lamisi","Lord Snow","Luisa Almaguer","Madra Salach","Mark William Lewis",
+  "Maruja","Milkweed","Naïka","Nick León","No Joy","Nourished By Time",
+  "Primitive Man","Sara Parkman","Sherelle","ŠIROM","Snuggle","Sorry",
+  "The Callous Daoboys","The New Eves","The Sophs","The Zawose Queens",
+  "Titanic","Tonser","Truck Violence","Tuvaband","Uld","Vanessa Amara",
+  "Vgtbl.pl","Wicky","Yerai Cortés"
+];
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -209,53 +219,108 @@ async function fetchLiveLineup(){
 async function enrichArtistData(){
   const src=document.getElementById('dataSource');
   const allNames=Object.keys(LINEUP);
-  let enriched=0,total=allNames.length;
+  const total=allNames.length;
 
-  // Build slug for each artist
   function makeSlug(name){
     return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Process in batches of 6 concurrent requests
-  const BATCH=6;
-  for(let i=0;i<allNames.length;i+=BATCH){
-    const batch=allNames.slice(i,i+BATCH);
-    const promises=batch.map(async name=>{
-      // Skip if already have day+stage from cache or prior fetch
-      if(LINEUP[name].day && LINEUP[name].stage)return;
+  // Check sessionStorage cache first
+  const cacheKey='rf26_artist_data';
+  try{
+    const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
+    let usedCache=0;
+    for(const name of allNames){
+      if(cached[name]&&(cached[name].day||cached[name].stage)){
+        if(cached[name].day)LINEUP[name].day=cached[name].day;
+        if(cached[name].stage)LINEUP[name].stage=cached[name].stage;
+        if(cached[name].time)LINEUP[name].time=cached[name].time;
+        usedCache++;
+      }
+    }
+    if(usedCache>total*0.5){
+      // Majority cached — render immediately, refresh in background
+      src.textContent=`✓ ${total} kunstnere (${usedCache} fra cache)`;
+      src.className='data-source live';
+      renderDays();updateCounter();
+    }
+  }catch(e){}
 
-      // Try to find slug from live data or generate it
+  // Find a working proxy by testing with one known artist
+  let workingProxy=null;
+  const testUrl='https://www.roskilde-festival.dk/program/musik/gorillaz';
+  for(const mk of PROXIES){
+    try{
+      const r=await fetchWithTimeout(mk(testUrl),6000);
+      if(r.ok){
+        const html=await r.text();
+        if(html.includes('Orange Scene')||html.includes('TORSDAG')){
+          workingProxy=mk;
+          console.log('[RF] Working proxy found');
+          break;
+        }
+      }
+    }catch(e){}
+  }
+
+  if(!workingProxy){
+    console.log('[RF] No working proxy for artist pages');
+    src.textContent=`⚠ Kunne ikke hente scener — viser cached data`;
+    src.className='data-source cached';
+    renderDays();
+    return;
+  }
+
+  // Fetch artists that still need day/stage, using only the working proxy
+  const needsFetch=allNames.filter(n=>!LINEUP[n].day||!LINEUP[n].stage);
+  let fetched=0;
+
+  // Process in batches of 4 (conservative to avoid rate limits)
+  const BATCH=4;
+  const newCache={};
+
+  for(let i=0;i<needsFetch.length;i+=BATCH){
+    const batch=needsFetch.slice(i,i+BATCH);
+    const promises=batch.map(async name=>{
       const slug=LINEUP[name]._slug||makeSlug(name);
       const pageUrl=`https://www.roskilde-festival.dk/program/musik/${slug}`;
-
-      for(const mk of PROXIES){
-        try{
-          const u=mk(pageUrl);
-          const r=await fetchWithTimeout(u,8000);
-          if(!r.ok)continue;
-          const html=await r.text();
-          if(html.length<500)continue;
-          const info=parseArtistPage(html);
-          if(info.day)LINEUP[name].day=info.day;
-          if(info.stage)LINEUP[name].stage=info.stage;
-          if(info.time)LINEUP[name].time=info.time;
-          enriched++;
-          break; // success, stop trying proxies
-        }catch(e){}
-      }
+      try{
+        const r=await fetchWithTimeout(workingProxy(pageUrl),8000);
+        if(!r.ok)return;
+        const html=await r.text();
+        if(html.length<500)return;
+        const info=parseArtistPage(html);
+        if(info.day)LINEUP[name].day=info.day;
+        if(info.stage)LINEUP[name].stage=info.stage;
+        if(info.time)LINEUP[name].time=info.time;
+        newCache[name]={day:info.day,stage:info.stage,time:info.time};
+        fetched++;
+      }catch(e){}
     });
     await Promise.all(promises);
 
-    // Update status text after every batch, but only re-render every 3rd batch
-    src.textContent=`🔄 Henter dag/scene... ${Math.min(i+BATCH,total)}/${total}`;
-    if((i/BATCH)%3===2 || i+BATCH>=allNames.length){
+    // Update status
+    const done=Math.min(i+BATCH,needsFetch.length);
+    src.textContent=`🔄 Henter dag/scene... ${done}/${needsFetch.length}`;
+
+    // Re-render every 4th batch to avoid flicker
+    if((i/BATCH)%4===3 || i+BATCH>=needsFetch.length){
       renderDays();updateCounter();
     }
 
-    // Small delay between batches to avoid rate limits
-    if(i+BATCH<allNames.length)await new Promise(r=>setTimeout(r,200));
+    // Delay between batches
+    if(i+BATCH<needsFetch.length)await new Promise(r=>setTimeout(r,300));
   }
+
+  // Save all to sessionStorage cache
+  try{
+    const fullCache={};
+    for(const name of allNames){
+      fullCache[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
+    }
+    sessionStorage.setItem(cacheKey,JSON.stringify(fullCache));
+  }catch(e){}
 
   // Final status
   const withDay=Object.values(LINEUP).filter(i=>i.day).length;
@@ -393,27 +458,21 @@ async function init(){
   const liveArtists=await fetchLiveLineup();
 
   if(liveArtists&&liveArtists.length>=20){
-    // Build LINEUP from live names, merged with cached day/stage
     LINEUP={};
     for(const{name,slug}of liveArtists){
-      const cached=CACHED_LINEUP[name];
-      LINEUP[name]={
-        day:cached?.day||'',
-        stage:cached?.stage||'',
-        time:cached?.time||'',
-        _slug:slug // keep slug for artist page fetching
-      };
-    }
-    // Add cached artists not found in live scrape (safety net)
-    for(const[name,info]of Object.entries(CACHED_LINEUP)){
-      if(!LINEUP[name])LINEUP[name]={...info};
+      LINEUP[name]={day:'',stage:'',time:'',_slug:slug};
     }
     dataIsLive=true;
-    src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere hentet — henter dag/scene...`;
+    src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere hentet`;
     src.className='data-source live';
   }else{
-    LINEUP={...CACHED_LINEUP};
-    src.textContent=`⚠ Cached data (marts 2026) — ${Object.keys(LINEUP).length} kunstnere`;
+    // Fallback: use cached names with empty day/stage
+    LINEUP={};
+    for(const name of CACHED_NAMES){
+      LINEUP[name]={day:'',stage:'',time:''};
+    }
+    dataIsLive=false;
+    src.textContent=`⚠ Bruger cached navne — ${Object.keys(LINEUP).length} kunstnere`;
     src.className='data-source cached';
   }
 
@@ -421,9 +480,7 @@ async function init(){
   renderDays();updateCounter();
 
   // Step 2: progressively enrich with day/stage from individual artist pages
-  if(dataIsLive){
-    enrichArtistData();
-  }
+  enrichArtistData();
 }
 init();
 </script>
