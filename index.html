@@ -56,7 +56,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .band-card:hover{background:var(--surface2);border-color:#a03e08}
 .band-card.selected{background:rgba(0,0,0,.15);border-color:#1a0800}
 .band-card.selected .band-icon{opacity:1;transform:scale(1)}.band-card.selected .band-name{color:#000;font-weight:700}
-.band-card.recommended{background:rgba(0,0,0,.08);border-color:var(--gold)}.band-card.recommended .rec-badge{display:flex}
+.band-card.recommended{background:rgba(212,168,67,.15);border-color:var(--gold);border-width:2px;box-shadow:0 0 8px rgba(212,168,67,.2)}.band-card.recommended .rec-badge{display:flex}.band-card.recommended .band-name{color:var(--gold)}
 .band-icon{font-size:1rem;opacity:.25;transform:scale(.8);transition:all .2s ease;flex-shrink:0;width:1.2rem;text-align:center}
 .band-card:hover .band-icon{opacity:.5;transform:scale(.9)}
 .band-info{flex:1;min-width:0;display:flex;align-items:center;gap:.35rem}
