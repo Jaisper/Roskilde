@@ -205,7 +205,12 @@ function getBandsForDayStage(dk,st){
 
 function renderDays(){
   const c=document.getElementById('dayContainer');c.innerHTML='';
-  const as=getActiveStages(),hasDays=Object.values(LINEUP).some(i=>i.day),hasStages=as.length>0;
+  const as=getActiveStages(),hasDays=Object.values(LINEUP).some(i=>i.day);
+
+  // Only use scene-column layout when >=50% of day-assigned bands have a stage
+  const bandsWithDay=Object.values(LINEUP).filter(i=>i.day);
+  const bandsWithStage=bandsWithDay.filter(i=>i.stage);
+  const useSceneLayout=as.length>=2 && bandsWithStage.length >= bandsWithDay.length * 0.5;
 
   // Render each day
   DAYS_CONFIG.forEach(day=>{
@@ -214,7 +219,7 @@ function renderDays(){
     const ht=dayBands.some(([_,i])=>i.time);
     const s=document.createElement('div');s.className=`day-section day-${day.key}`;
 
-    if(hasStages){
+    if(useSceneLayout){
       // Scene-column layout
       s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">${ht?'↓ Sorteret efter starttid':'↓ Alfabetisk'}</div><div class="scene-grid" style="--stage-count:${as.length}"></div>`;
       c.appendChild(s);const sg=s.querySelector('.scene-grid');
@@ -233,8 +238,8 @@ function renderDays(){
         noStage.forEach(b=>renderBandCard(b,extra));s.appendChild(extra);
       }
     } else {
-      // No scene data — simple grid per day
-      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">↓ Alfabetisk</div><div class="band-grid"></div>`;
+      // Simple grid per day (no scene columns)
+      s.innerHTML=`<div class="day-header"><div class="day-dot"></div><div class="day-name">${day.name}</div><div class="day-date">${day.date}</div><div class="day-count"><span>${dayBands.length}</span> kunstnere</div></div><div class="sort-indicator">${ht?'↓ Sorteret efter starttid':'↓ Alfabetisk'}</div><div class="band-grid"></div>`;
       c.appendChild(s);const g=s.querySelector('.band-grid');
       dayBands.map(([n,i])=>({name:n,stage:i.stage,time:i.time||''})).sort((a,b)=>a.name.localeCompare(b.name,'da')).forEach(b=>renderBandCard(b,g));
     }
