@@ -462,8 +462,7 @@ function renderBandCard(band,parent){
   const card=document.createElement('div');card.className='band-card';card.dataset.band=band.name;
   if(selected.has(band.name))card.classList.add('selected');
   if(recommended.has(band.name))card.classList.add('recommended');
-  const isHL=HEADLINER_NAMES.includes(band.name);
-  card.innerHTML=`<div class="band-icon">🎵</div><div class="band-info"><div class="band-text">${band.time?`<span class="band-time">${band.time}</span>`:''}<div class="band-name" title="${band.name}">${band.name}</div></div><a href="${getSpotifyUrl(band.name)}" target="_blank" rel="noopener" class="spotify-link" title="Åbn på Spotify">${SPOTIFY_SVG}</a></div>${isHL?'<span class="headliner-tag">HEADLINER</span>':''}<div class="rec-badge">${recommended.has(band.name)?'#'+recommended.get(band.name):''}</div>`;
+  card.innerHTML=`<div class="band-icon">🎵</div><div class="band-info"><div class="band-text">${band.time?`<span class="band-time">${band.time}</span>`:''}<div class="band-name" title="${band.name}">${band.name}</div></div><a href="${getSpotifyUrl(band.name)}" target="_blank" rel="noopener" class="spotify-link" title="Åbn på Spotify">${SPOTIFY_SVG}</a></div><div class="rec-badge">${recommended.has(band.name)?'#'+recommended.get(band.name):''}</div>`;
   card.addEventListener('click',e=>{if(e.target.closest('a'))return;toggleBand(band.name,card)});
   parent.appendChild(card);
 }
@@ -494,9 +493,9 @@ async function getRecommendations(){
   }else{
     introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har angivet disse FAVORIT-GENRER:\n\n${genreList}\n\nAnbefal kunstnere der bedst matcher disse genrer.`;
   }
-  const prompt=`${introText}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 10 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 20.`;
+  const prompt=`${introText}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 20 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 20.`;
   try{
-    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.5,max_tokens:4000})});
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.5,max_tokens:8000})});
     if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API fejl')}
     const data=await r.json();let clean=data.choices[0].message.content.trim().replace(/```json\s?/g,'').replace(/```/g,'').trim();
     let recs;try{recs=JSON.parse(clean)}catch(e){const m=clean.match(/\[[\s\S]*\]/);if(m)clean=m[0];clean=clean.replace(/,\s*([}\]])/g,'$1').replace(/\n/g,' ');if(!clean.endsWith(']')){const lb=clean.lastIndexOf('}');if(lb>0)clean=clean.substring(0,lb+1)+']'}clean=clean.replace(/,\s*([}\]])/g,'$1');try{recs=JSON.parse(clean)}catch{throw new Error('AI returnerede ugyldigt svar. Prøv igen.')}}
