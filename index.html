@@ -69,6 +69,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .spotify-link svg{width:18px;height:18px;fill:#1a6b00;pointer-events:none}
 .rec-badge{display:none;align-items:center;justify-content:center;background:var(--text);color:var(--bg);font-size:.55rem;font-weight:700;padding:.15rem .4rem;flex-shrink:0}
 .headliner-tag{font-size:.5rem;letter-spacing:.1em;color:var(--bg);text-transform:uppercase;flex-shrink:0;background:var(--text);padding:.15rem .4rem;font-weight:700}
+.genre-section{max-width:1200px;margin:2rem auto 0;padding:0 1.5rem}
+.genre-header{font-size:.75rem;color:var(--text);margin-bottom:.75rem;text-align:center}
+.genre-hint{font-size:.6rem;color:var(--text-dim);font-weight:400}
+.genre-grid{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+.genre-chip{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:.35rem .75rem;font-family:'IBM Plex Mono',monospace;font-size:.65rem;cursor:pointer;transition:all .15s ease;user-select:none}
+.genre-chip:hover{border-color:var(--orange);color:var(--text)}
+.genre-chip.active{background:rgba(232,98,30,.15);border-color:var(--orange);color:var(--orange);font-weight:700}
 .recommend-section{max-width:1200px;margin:2rem auto;padding:0 1.5rem;text-align:center}
 .btn-recommend{background:transparent;color:var(--text);border:2px solid var(--text);padding:.9rem 2.5rem;font-family:'IBM Plex Mono',monospace;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s ease}
 .btn-recommend:hover:not(:disabled){background:var(--text);color:var(--bg);box-shadow:0 0 30px rgba(0,0,0,.2)}
@@ -114,6 +121,23 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="fav-counter"><span class="icon">🎵</span><span>Valgte favoritter: <span class="count" id="favCount">0</span></span></div>
 </div>
 <div class="day-container" id="dayContainer"><div class="loading-indicator">Henter lineup</div></div>
+<div class="genre-section">
+  <div class="genre-header">🎶 Favorit genrer <span class="genre-hint">(valgfrit — hjælper AI'en med bedre anbefalinger)</span></div>
+  <div class="genre-grid" id="genreGrid">
+    <div class="genre-chip" data-genre="Pop">Pop</div>
+    <div class="genre-chip" data-genre="R&B">R&B</div>
+    <div class="genre-chip" data-genre="Indie Rock">Indie Rock</div>
+    <div class="genre-chip" data-genre="Hip-hop/Rap">Hip-hop/Rap</div>
+    <div class="genre-chip" data-genre="Elektronisk">Elektronisk</div>
+    <div class="genre-chip" data-genre="Punk">Punk</div>
+    <div class="genre-chip" data-genre="Metal">Metal</div>
+    <div class="genre-chip" data-genre="Singer-songwriter">Singer-songwriter</div>
+    <div class="genre-chip" data-genre="Folk/Traditional">Folk/Traditional</div>
+    <div class="genre-chip" data-genre="Latin">Latin</div>
+    <div class="genre-chip" data-genre="Global/Afro">Global/Afro</div>
+    <div class="genre-chip" data-genre="Eksperimentel">Eksperimentel</div>
+  </div>
+</div>
 <div class="recommend-section">
   <button class="btn-recommend" id="recBtn" onclick="getRecommendations()" disabled>🎪 Find anbefalinger baseret på mine favoritter</button>
   <div class="action-bar"><button class="btn-ghost" onclick="clearSelections()">Nulstil valg</button><button class="btn-ghost hidden" id="clearRecBtn" onclick="clearRecommendations()">Fjern anbefalinger</button></div>
@@ -164,7 +188,7 @@ const CACHED_NAMES=[
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
-let LINEUP={},dataIsLive=false;const selected=new Set(),recommended=new Map();
+let LINEUP={},dataIsLive=false;const selected=new Set(),selectedGenres=new Set(),recommended=new Map();
 
 // ═══════════════════════════════════════════════════════
 // LIVE SCRAPING
@@ -452,8 +476,8 @@ function renderBandCard(band,parent){
 }
 
 function toggleBand(b,c){if(selected.has(b)){selected.delete(b);c.classList.remove('selected')}else{selected.add(b);c.classList.add('selected');c.style.transform='scale(1.03)';setTimeout(()=>c.style.transform='',150)}updateCounter()}
-function updateCounter(){document.getElementById('favCount').textContent=selected.size;document.getElementById('recBtn').disabled=selected.size<1}
-function clearSelections(){selected.clear();recommended.clear();renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
+function updateCounter(){document.getElementById('favCount').textContent=selected.size;document.getElementById('recBtn').disabled=selected.size<1&&selectedGenres.size<1}
+function clearSelections(){selected.clear();selectedGenres.clear();recommended.clear();document.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('active'));renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
 function clearRecommendations(){recommended.clear();renderDays();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
 function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(!k.startsWith('gsk_')){document.getElementById('apiStatus').textContent='✗ Nøglen skal starte med gsk_';document.getElementById('apiStatus').style.color='#c23c2c';return}localStorage.setItem('groq_api_key',k);document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84'}
 
@@ -463,10 +487,21 @@ function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(
 async function getRecommendations(){
   const apiKey=localStorage.getItem('groq_api_key')||document.getElementById('apiKey').value.trim();
   if(!apiKey){document.getElementById('apiBox').setAttribute('open','');document.getElementById('apiStatus').textContent='✗ Indtast Groq API nøgle';document.getElementById('apiStatus').style.color='#c23c2c';return}
-  const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));if(!fav.length)return;
+  const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));
+  if(!fav.length&&!selectedGenres.size)return;
   const btn=document.getElementById('recBtn');btn.classList.add('loading');btn.textContent='🎵 AI analyserer din musiksmag...';
   const rl=rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
-  const prompt=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 10 bedste kunstnere fra den øvrige liste baseret på brugerens musiksmag. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 10.`;
+  const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0;
+  const genreList=Array.from(selectedGenres).map(g=>'• '+g).join('\n');
+  let introText;
+  if(hasFavs&&hasGenres){
+    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nBrugeren har desuden angivet disse FAVORIT-GENRER:\n${genreList}\n\nPrioritér kunstnere der matcher disse genrer højere i anbefalingerne.`;
+  }else if(hasFavs){
+    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}`;
+  }else{
+    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har angivet disse FAVORIT-GENRER:\n\n${genreList}\n\nAnbefal kunstnere der bedst matcher disse genrer.`;
+  }
+  const prompt=`${introText}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 10 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 10.`;
   try{
     const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.5,max_tokens:4000})});
     if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API fejl')}
@@ -523,6 +558,16 @@ async function init(){
 
   // Render immediately with whatever data we have
   renderDays();updateCounter();
+
+  // Genre chip click handlers
+  document.querySelectorAll('.genre-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const g=chip.dataset.genre;
+      if(selectedGenres.has(g)){selectedGenres.delete(g);chip.classList.remove('active')}
+      else{selectedGenres.add(g);chip.classList.add('active')}
+      updateCounter();
+    });
+  });
 
   // Step 2: progressively enrich with day/stage from individual artist pages
   enrichArtistData();
