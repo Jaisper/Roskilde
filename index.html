@@ -140,12 +140,12 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
     <div style="margin-top:1rem">
       <label style="font-size:.85rem;color:rgba(255,255,255,.7);display:block;margin-bottom:.4rem">AI Model</label>
       <select id="modelSelect" style="width:100%;background:rgba(0,0,0,.2);border:1px solid rgba(0,0,0,.15);color:#fff;padding:.5rem .75rem;font-family:'Source Sans 3',sans-serif;font-size:.9rem;border-radius:3px">
-        <option value="compound-beta">🔍 Compound Beta (web search — anbefalet)</option>
-        <option value="llama-3.3-70b-versatile">⚡ Llama 3.3 70B (hurtig, kan hallucinere)</option>
+        <option value="compound-beta">🔍 Compound Beta (web search — langsom)</option>
+        <option value="llama-3.3-70b-versatile" selected>⚡ Llama 3.3 70B (anbefalet — hurtig)</option>
         <option value="deepseek-r1-distill-llama-70b">🧠 DeepSeek R1 70B (god ræsonnering)</option>
         <option value="llama-3.1-8b-instant">💨 Llama 3.1 8B (ultra-hurtig, lavere kvalitet)</option>
       </select>
-      <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem" id="modelHint">Compound Beta søger på nettet — giver de mest præcise beskrivelser</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem" id="modelHint">Hurtig og god til de fleste kunstnere</div>
     </div>
   </details></div>
 </div>
@@ -521,13 +521,13 @@ ${introText}
 ${rl}
 
 REGLER:
-- Beskriv KUN faktisk genre, lyd og stil
-- ${isCompound?'Søg efter kunstnere du ikke kender':'Beskriv kun det du ved med sikkerhed'}
-- OPFIND ALDRIG biografiske detaljer du ikke er sikker på
+- Anbefal KUN kunstnere du med sikkerhed kender og kan beskrive korrekt
+- SPRING kunstnere over du ikke kender — det er bedre med 8 gode anbefalinger end 20 med fejl
+- Beskriv faktisk genre, lyd og stil — OPFIND ALDRIG fakta
 - 2-3 sætninger på dansk per kunstner
-- Sig hellere "spændende kunstner inden for [genre]" end at opfinde
 
-Anbefal 20 kunstnere, sorteret efter match. Brug PRÆCIS navne fra listen.
+Anbefal OP TIL 20 kunstnere du KENDER, sorteret efter match. Brug PRÆCIS navne fra listen.
+Det er OK at returnere færre end 20 hvis du ikke kender nok kunstnere.
 JSON array, ingen anden tekst:
 [{"rank":1,"band":"NAVN","reason":"2-3 sætninger dansk","match":"95%"}]`;
 
@@ -589,7 +589,7 @@ async function init(){
   if(savedModel)document.getElementById('modelSelect').value=savedModel;
   document.getElementById('modelSelect').addEventListener('change',function(){
     localStorage.setItem('groq_model',this.value);
-    const hints={'compound-beta':'Compound Beta søger på nettet — giver de mest præcise beskrivelser','llama-3.3-70b-versatile':'Hurtig men kan hallucinere fakta om mindre kendte kunstnere','deepseek-r1-distill-llama-70b':'God til ræsonnering, lidt langsommere','llama-3.1-8b-instant':'Ultra-hurtig men lavere kvalitet'};
+    const hints={'compound-beta':'Søger på nettet — langsom og rammer ofte rate limit','llama-3.3-70b-versatile':'Hurtig og god til de fleste kunstnere','deepseek-r1-distill-llama-70b':'God til ræsonnering, lidt langsommere','llama-3.1-8b-instant':'Ultra-hurtig men lavere kvalitet'};
     document.getElementById('modelHint').textContent=hints[this.value]||'';
   });
   const src=document.getElementById('dataSource');
