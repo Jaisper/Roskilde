@@ -133,10 +133,20 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
   <br>
   <button class="btn-recommend" id="recBtn" onclick="getRecommendations()" disabled>🎪 Find anbefalinger baseret på mine favoritter</button>
   <div class="action-bar"><button class="btn-ghost" onclick="clearSelections()">Nulstil valg</button><button class="btn-ghost hidden" id="clearRecBtn" onclick="clearRecommendations()">Fjern anbefalinger</button></div>
-  <div class="api-section" style="margin-top:1.5rem"><details class="api-box" id="apiBox"><summary>⚙ Groq API Nøgle</summary>
+  <div class="api-section" style="margin-top:1.5rem"><details class="api-box" id="apiBox"><summary>⚙ Indstillinger</summary>
     <p class="api-hint">Gratis AI via <a href="https://console.groq.com" target="_blank">console.groq.com</a> — log ind → API Keys → Create.</p>
     <div class="api-row"><input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off"><button class="btn-small" onclick="saveApiKey()">Gem</button></div>
     <div class="api-status" id="apiStatus"></div>
+    <div style="margin-top:1rem">
+      <label style="font-size:.85rem;color:rgba(255,255,255,.7);display:block;margin-bottom:.4rem">AI Model</label>
+      <select id="modelSelect" style="width:100%;background:rgba(0,0,0,.2);border:1px solid rgba(0,0,0,.15);color:#fff;padding:.5rem .75rem;font-family:'Source Sans 3',sans-serif;font-size:.9rem;border-radius:3px">
+        <option value="compound-beta">🔍 Compound Beta (web search — anbefalet)</option>
+        <option value="llama-3.3-70b-versatile">⚡ Llama 3.3 70B (hurtig, kan hallucinere)</option>
+        <option value="deepseek-r1-distill-llama-70b">🧠 DeepSeek R1 70B (god ræsonnering)</option>
+        <option value="llama-3.1-8b-instant">💨 Llama 3.1 8B (ultra-hurtig, lavere kvalitet)</option>
+      </select>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem" id="modelHint">Compound Beta søger på nettet — giver de mest præcise beskrivelser</div>
+    </div>
   </details></div>
 </div>
 <div class="results-section hidden" id="results"><div class="results-header">AI Anbefalinger — baseret på dine favoritter</div><div id="resultsList"></div></div>
@@ -485,23 +495,53 @@ async function getRecommendations(){
   if(!apiKey){document.getElementById('apiBox').setAttribute('open','');document.getElementById('apiStatus').textContent='✗ Indtast Groq API nøgle';document.getElementById('apiStatus').style.color='#c23c2c';return}
   const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));
   if(!fav.length&&!selectedGenres.size)return;
-  const btn=document.getElementById('recBtn');btn.classList.add('loading');btn.textContent='🎵 AI analyserer din musiksmag...';
+  const model=document.getElementById('modelSelect').value;
+  const isCompound=model==='compound-beta';
+  const btn=document.getElementById('recBtn');btn.classList.add('loading');
+  btn.textContent=isCompound?'🔍 AI søger på nettet og analyserer...':'🎵 AI analyserer din musiksmag...';
   const rl=rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
   const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0;
   const genreList=Array.from(selectedGenres).map(g=>'• '+g).join('\n');
   let introText;
   if(hasFavs&&hasGenres){
-    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nBrugeren har desuden angivet disse FAVORIT-GENRER:\n${genreList}\n\nPrioritér kunstnere der matcher disse genrer højere i anbefalingerne.`;
+    introText=`Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nBrugeren har desuden angivet disse FAVORIT-GENRER:\n${genreList}\n\nPrioritér kunstnere der matcher disse genrer højere i anbefalingerne.`;
   }else if(hasFavs){
-    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}`;
+    introText=`Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}`;
   }else{
-    introText=`Du er en musikekspert med bred viden om alle genrer. Brugeren har angivet disse FAVORIT-GENRER:\n\n${genreList}\n\nAnbefal kunstnere der bedst matcher disse genrer.`;
+    introText=`Brugeren har angivet disse FAVORIT-GENRER:\n\n${genreList}\n\nAnbefal kunstnere der bedst matcher disse genrer.`;
   }
-  const prompt=`${introText}\n\nHer er de ØVRIGE kunstnere på Roskilde Festival 2026:\n${rl}\n\nRoskilde Festival er en bred musikfestival med alt fra rock, pop, hiphop, elektronisk, world music, metal, jazz og eksperimentel musik.\n\nAnbefal de 20 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}. Sortér efter match-kvalitet. Giv en beskrivelse på 3-5 sætninger på dansk for hver kunstner.\n\nSVAR KUN med denne JSON-struktur, ingen anden tekst:\n[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]\n\nVIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 20.`;
+  const prompt=`Du er en musikekspert der hjælper med at finde gode koncertoplevelser på Roskilde Festival 2026.
+
+${introText}
+
+Her er de ØVRIGE kunstnere på Roskilde Festival 2026 som du kan anbefale fra:
+${rl}
+
+VIGTIGE REGLER FOR BESKRIVELSER:
+- Beskriv KUN kunstnerens faktiske genre, lyd og stil
+- Hvis du ikke er 100% sikker på en kunstner, ${isCompound?'søg efter dem først':'beskriv kun baseret på det du ved med sikkerhed'}
+- OPFIND ALDRIG biografiske detaljer, nationalitet, hitnavne eller karrierehistorie du ikke er sikker på
+- Fokusér på: genre, lyd, stemning, og hvorfor de passer til brugerens smag
+- Skriv 3-5 sætninger på dansk per kunstner
+- Sig hellere "en spændende kunstner inden for [genre]" end at opfinde fakta
+
+Anbefal de 20 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}.
+Sortér efter match-kvalitet (bedste match først).
+
+SVAR KUN med denne JSON-struktur, ingen anden tekst:
+[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]
+
+VIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 20.`;
+
   try{
-    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.5,max_tokens:8000})});
+    const body={model,messages:[{role:'user',content:prompt}],temperature:0.4,max_tokens:8000};
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify(body)});
     if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API fejl')}
-    const data=await r.json();let clean=data.choices[0].message.content.trim().replace(/```json\s?/g,'').replace(/```/g,'').trim();
+    const data=await r.json();
+    let raw=data.choices[0].message.content.trim();
+    // DeepSeek R1 wraps in <think>...</think> — strip it
+    raw=raw.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+    let clean=raw.replace(/```json\s?/g,'').replace(/```/g,'').trim();
     let recs;try{recs=JSON.parse(clean)}catch(e){const m=clean.match(/\[[\s\S]*\]/);if(m)clean=m[0];clean=clean.replace(/,\s*([}\]])/g,'$1').replace(/\n/g,' ');if(!clean.endsWith(']')){const lb=clean.lastIndexOf('}');if(lb>0)clean=clean.substring(0,lb+1)+']'}clean=clean.replace(/,\s*([}\]])/g,'$1');try{recs=JSON.parse(clean)}catch{throw new Error('AI returnerede ugyldigt svar. Prøv igen.')}}
     if(!Array.isArray(recs)||!recs.length)throw new Error('Tomt svar. Prøv igen.');
     displayRecommendations(recs);
@@ -527,6 +567,14 @@ function displayRecommendations(recs){
 async function init(){
   const sk=localStorage.getItem('groq_api_key');
   if(sk){document.getElementById('apiKey').value=sk;document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84';document.getElementById('apiBox').removeAttribute('open')}
+  // Restore saved model
+  const savedModel=localStorage.getItem('groq_model');
+  if(savedModel)document.getElementById('modelSelect').value=savedModel;
+  document.getElementById('modelSelect').addEventListener('change',function(){
+    localStorage.setItem('groq_model',this.value);
+    const hints={'compound-beta':'Compound Beta søger på nettet — giver de mest præcise beskrivelser','llama-3.3-70b-versatile':'Hurtig men kan hallucinere fakta om mindre kendte kunstnere','deepseek-r1-distill-llama-70b':'God til ræsonnering, lidt langsommere','llama-3.1-8b-instant':'Ultra-hurtig men lavere kvalitet'};
+    document.getElementById('modelHint').textContent=hints[this.value]||'';
+  });
   const src=document.getElementById('dataSource');
 
   // Step 1: try to get artist list from program page
