@@ -499,47 +499,64 @@ async function getRecommendations(){
   const isCompound=model==='compound-beta';
   const btn=document.getElementById('recBtn');btn.classList.add('loading');
   btn.textContent=isCompound?'🔍 AI søger på nettet og analyserer...':'🎵 AI analyserer din musiksmag...';
-  const rl=rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
+  // Compact list for compound-beta to save tokens (rate limit)
+  const rl=isCompound
+    ? rem.map(b=>`• ${b}`).join('\n')
+    : rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
   const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0;
   const genreList=Array.from(selectedGenres).map(g=>'• '+g).join('\n');
   let introText;
   if(hasFavs&&hasGenres){
-    introText=`Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}\n\nBrugeren har desuden angivet disse FAVORIT-GENRER:\n${genreList}\n\nPrioritér kunstnere der matcher disse genrer højere i anbefalingerne.`;
+    introText=`Brugerens favoritter fra Roskilde 2026:\n${fav.map(b=>'• '+b).join('\n')}\n\nFAVORIT-GENRER:\n${genreList}\nPrioritér kunstnere der matcher disse genrer.`;
   }else if(hasFavs){
-    introText=`Brugeren har valgt disse kunstnere som favoritter fra Roskilde Festival 2026:\n\n${fav.map(b=>'• '+b).join('\n')}`;
+    introText=`Brugerens favoritter fra Roskilde 2026:\n${fav.map(b=>'• '+b).join('\n')}`;
   }else{
-    introText=`Brugeren har angivet disse FAVORIT-GENRER:\n\n${genreList}\n\nAnbefal kunstnere der bedst matcher disse genrer.`;
+    introText=`FAVORIT-GENRER:\n${genreList}\nAnbefal kunstnere der matcher disse genrer.`;
   }
-  const prompt=`Du er en musikekspert der hjælper med at finde gode koncertoplevelser på Roskilde Festival 2026.
+  const prompt=`Musikekspert: anbefal koncerter på Roskilde Festival 2026.
 
 ${introText}
 
-Her er de ØVRIGE kunstnere på Roskilde Festival 2026 som du kan anbefale fra:
+ØVRIGE kunstnere at anbefale fra:
 ${rl}
 
-VIGTIGE REGLER FOR BESKRIVELSER:
-- Beskriv KUN kunstnerens faktiske genre, lyd og stil
-- Hvis du ikke er 100% sikker på en kunstner, ${isCompound?'søg efter dem først':'beskriv kun baseret på det du ved med sikkerhed'}
-- OPFIND ALDRIG biografiske detaljer, nationalitet, hitnavne eller karrierehistorie du ikke er sikker på
-- Fokusér på: genre, lyd, stemning, og hvorfor de passer til brugerens smag
-- Skriv 3-5 sætninger på dansk per kunstner
-- Sig hellere "en spændende kunstner inden for [genre]" end at opfinde fakta
+REGLER:
+- Beskriv KUN faktisk genre, lyd og stil
+- ${isCompound?'Søg efter kunstnere du ikke kender':'Beskriv kun det du ved med sikkerhed'}
+- OPFIND ALDRIG biografiske detaljer du ikke er sikker på
+- 2-3 sætninger på dansk per kunstner
+- Sig hellere "spændende kunstner inden for [genre]" end at opfinde
 
-Anbefal de 20 bedste kunstnere fra listen baseret på brugerens musiksmag${hasGenres?' og foretrukne genrer':''}.
-Sortér efter match-kvalitet (bedste match først).
+Anbefal 20 kunstnere, sorteret efter match. Brug PRÆCIS navne fra listen.
+JSON array, ingen anden tekst:
+[{"rank":1,"band":"NAVN","reason":"2-3 sætninger dansk","match":"95%"}]`;
 
-SVAR KUN med denne JSON-struktur, ingen anden tekst:
-[{"rank":1,"band":"KUNSTNERNAVN","reason":"3-5 sætninger på dansk","match":"95%"}]
-
-VIGTIGT: Brug KUN kunstnernavne PRÆCIS som de står i listen. Svar KUN med valid JSON, max 20.`;
+  async function callGroq(m,retries){
+    if(retries===undefined)retries=2;
+    const body={model:m,messages:[{role:'user',content:prompt}],temperature:0.4,max_tokens:8000};
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify(body)});
+    if(!r.ok){
+      const e=await r.json();const msg=e.error?.message||'';
+      if(msg.includes('Rate limit')&&retries>0){
+        const w=msg.match(/try again in ([\d.]+)s/i);
+        const delay=w?Math.ceil(parseFloat(w[1])*1000)+500:15000;
+        btn.textContent=`⏳ Rate limited — venter ${Math.ceil(delay/1000)}s...`;
+        await new Promise(ok=>setTimeout(ok,delay));
+        return callGroq(m,retries-1);
+      }
+      if(m==='compound-beta'){
+        btn.textContent='⚡ Compound Beta fejlede — skifter til Llama 3.3...';
+        await new Promise(ok=>setTimeout(ok,1000));
+        return callGroq('llama-3.3-70b-versatile',1);
+      }
+      throw new Error(msg||'API fejl');
+    }
+    return r.json();
+  }
 
   try{
-    const body={model,messages:[{role:'user',content:prompt}],temperature:0.4,max_tokens:8000};
-    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify(body)});
-    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API fejl')}
-    const data=await r.json();
+    const data=await callGroq(model);
     let raw=data.choices[0].message.content.trim();
-    // DeepSeek R1 wraps in <think>...</think> — strip it
     raw=raw.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
     let clean=raw.replace(/```json\s?/g,'').replace(/```/g,'').trim();
     let recs;try{recs=JSON.parse(clean)}catch(e){const m=clean.match(/\[[\s\S]*\]/);if(m)clean=m[0];clean=clean.replace(/,\s*([}\]])/g,'$1').replace(/\n/g,' ');if(!clean.endsWith(']')){const lb=clean.lastIndexOf('}');if(lb>0)clean=clean.substring(0,lb+1)+']'}clean=clean.replace(/,\s*([}\]])/g,'$1');try{recs=JSON.parse(clean)}catch{throw new Error('AI returnerede ugyldigt svar. Prøv igen.')}}
