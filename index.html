@@ -202,7 +202,7 @@ let LINEUP={},dataIsLive=false;const selected=new Set(),selectedGenres=new Set()
 // ═══════════════════════════════════════════════════════
 // LIVE SCRAPING
 // ═══════════════════════════════════════════════════════
-function fetchWithTimeout(u,ms=10000){const c=new AbortController;const t=setTimeout(()=>c.abort(),ms);return fetch(u,{signal:c.signal}).finally(()=>clearTimeout(t))}
+function fetchWithTimeout(u,ms=10000){try{const c=new AbortController;const t=setTimeout(()=>c.abort(),ms);return fetch(u,{signal:c.signal}).finally(()=>clearTimeout(t))}catch(e){return fetch(u)}}
 
 function parseProgram(html){
   const doc=new DOMParser().parseFromString(html,'text/html'),artists=[];
@@ -266,8 +266,7 @@ async function fetchLiveLineup(){
     const a=parseProgram(h);
     console.log(`[RF] Found ${a.length} artists from ${pu.substring(0,40)}`);
     if(a.length>=20){artists=a;break}
-  }catch(e){console.log('[RF] Program fetch failed:',e.message)}}
-  if(artists)break}
+  }catch(e){/* proxy failed, try next */}}  if(artists)break}
   return artists; // array of {name, slug}
 }
 
