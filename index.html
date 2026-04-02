@@ -134,7 +134,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
   <br>
   <button class="btn-recommend" id="recBtn" onclick="getRecommendations()" disabled>🎪 Find anbefalinger baseret på mine favoritter</button>
   <div class="action-bar"><button class="btn-ghost" onclick="clearSelections()">Nulstil valg</button><button class="btn-ghost hidden" id="clearRecBtn" onclick="clearRecommendations()">Fjern anbefalinger</button></div>
-  <div class="api-section" style="margin-top:1.5rem"><details class="api-box" id="apiBox"><summary>⚙ AI Indstillinger (API Key og valg af AI model)</summary>
+  <div class="api-section" style="margin-top:1.5rem"><details class="api-box" id="apiBox"><summary>⚙ AI Indstillinger (API Key og valg af AI Model)</summary>
     <p class="api-hint">Gratis AI via <a href="https://console.groq.com" target="_blank">console.groq.com</a> — log ind → API Keys → Create.</p>
     <div class="api-row"><input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off"><button class="btn-small" onclick="saveApiKey()">Gem</button></div>
     <div class="api-status" id="apiStatus"></div>
@@ -498,58 +498,49 @@ async function getRecommendations(){
   const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));
   if(!fav.length&&!selectedGenres.size)return;
   const model=document.getElementById('modelSelect').value;
-  const isCompound=model==='compound-beta';
+  const isSmallLimit=model.includes('gpt-oss')||model==='compound-beta';
   const btn=document.getElementById('recBtn');btn.classList.add('loading');
-  btn.textContent=isCompound?'🔍 AI søger på nettet og analyserer...':'🎵 AI analyserer din musiksmag...';
-  // Compact list for compound-beta to save tokens (rate limit)
-  const rl=isCompound
-    ? rem.map(b=>`• ${b}`).join('\n')
+  btn.textContent=model==='compound-beta'?'🔍 AI søger på nettet og analyserer...':'🎵 AI analyserer din musiksmag...';
+  // Compact list (names only) for models with low TPM limits
+  const rl=isSmallLimit
+    ? rem.map(b=>b).join(', ')
     : rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
   const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0;
-  const genreList=Array.from(selectedGenres).map(g=>'• '+g).join('\n');
+  const genreList=Array.from(selectedGenres).map(g=>g).join(', ');
   let introText;
   if(hasFavs&&hasGenres){
-    introText=`Brugerens favoritter fra Roskilde 2026:\n${fav.map(b=>'• '+b).join('\n')}\n\nFAVORIT-GENRER:\n${genreList}\nPrioritér kunstnere der matcher disse genrer.`;
+    introText=`Favoritter: ${fav.join(', ')}\nGenrer: ${genreList}`;
   }else if(hasFavs){
-    introText=`Brugerens favoritter fra Roskilde 2026:\n${fav.map(b=>'• '+b).join('\n')}`;
+    introText=`Favoritter: ${fav.join(', ')}`;
   }else{
-    introText=`FAVORIT-GENRER:\n${genreList}\nAnbefal kunstnere der matcher disse genrer.`;
+    introText=`Genrer: ${genreList}`;
   }
-  const prompt=`Musikekspert: anbefal koncerter på Roskilde Festival 2026.
-
+  const prompt=`Roskilde Festival 2026 koncertanbefaler.
 ${introText}
 
-ØVRIGE kunstnere at anbefale fra:
-${rl}
+Øvrige kunstnere: ${rl}
 
-REGLER:
-- Anbefal KUN kunstnere du med sikkerhed kender og kan beskrive korrekt
-- Medtag IKKE kunstnere du ikke kender — spring dem over
-- Beskriv faktisk genre, lyd og stil — OPFIND ALDRIG fakta
-- 2-3 sætninger på dansk per kunstner
-
-Anbefal OP TIL 20 kunstnere du KENDER, sorteret efter match. Giv så mange som muligt (gerne 15-20).
-Brug PRÆCIS navne fra listen.
-JSON array, ingen anden tekst:
-[{"rank":1,"band":"NAVN","reason":"2-3 sætninger dansk","match":"95%"}]`;
+Anbefal op til 20 kunstnere du KENDER. KUN kendte kunstnere, spring ukendte over. 2-3 sætninger dansk per kunstner. OPFIND ALDRIG fakta.
+JSON array: [{"rank":1,"band":"NAVN","reason":"beskrivelse","match":"95%"}]`;
 
   async function callGroq(m,retries){
     if(retries===undefined)retries=2;
-    const body={model:m,messages:[{role:'user',content:prompt}],temperature:0.4,max_tokens:8000};
+    const mt=m.includes('gpt-oss')?4000:8000;
+    const body={model:m,messages:[{role:'user',content:prompt}],temperature:0.4,max_tokens:mt};
     const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify(body)});
     if(!r.ok){
       const e=await r.json();const msg=e.error?.message||'';
+      if((msg.includes('Rate limit')||msg.includes('too large')||msg.includes('Request too large'))&&m!=='llama-3.3-70b-versatile'){
+        btn.textContent='⚡ Skifter til Llama 3.3 70B...';
+        await new Promise(ok=>setTimeout(ok,500));
+        return callGroq('llama-3.3-70b-versatile',1);
+      }
       if(msg.includes('Rate limit')&&retries>0){
         const w=msg.match(/try again in ([\d.]+)s/i);
         const delay=w?Math.ceil(parseFloat(w[1])*1000)+500:15000;
         btn.textContent=`⏳ Rate limited — venter ${Math.ceil(delay/1000)}s...`;
         await new Promise(ok=>setTimeout(ok,delay));
         return callGroq(m,retries-1);
-      }
-      if(m==='compound-beta'){
-        btn.textContent='⚡ Compound Beta fejlede — skifter til Llama 3.3...';
-        await new Promise(ok=>setTimeout(ok,1000));
-        return callGroq('llama-3.3-70b-versatile',1);
       }
       throw new Error(msg||'API fejl');
     }
