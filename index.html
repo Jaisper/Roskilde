@@ -184,13 +184,25 @@ const HEADLINER_NAMES=['Gorillaz','The Cure','Zara Larsson','David Byrne','Tobia
 
 // First Days artists (27-29 juni) + Pil opens Orange
 const FIRST_DAYS_NAMES=[
-  "Pil","100% Wet","A Good Year","Alawari","Alice Ai","Ana Juél","Augusta Schackinger",
-  "Berg","Carlina de Place","Club Live","Demersal","Diket Dork","Døtre","Eros For You",
+  "Pil","100%Wet","A Good Year","Alawari","Alice Ai","Ana Juél","Augusta Schackinger",
+  "Berg","Carlina de Place","Club Live","Demersal","Diket","Dork","Døtre","Eros For You",
   "Fauna","GB","Glayden","Grande Mahogany","Ida Duelund","Karoline Mousing","Kayak",
   "Kōya","Mami Umami","Masiv","Miaw","Michael Williams","Morild",
   "Muskila + Simona Abdallah","Oskar Witt","Ozzy","Pistol Pistol Pistol","Ponny",
   "Portal Pets","Pumpegris","Sa_G","Salver","Scam","Smøgmænd","Spawner","Will","Zuloo"
 ];
+
+// Slug overrides for names that don't generate correct slugs
+const SLUG_OVERRIDES={
+  "100%Wet":"100wet","100% Wet":"100wet",
+  "Kōya":"k%C5%8Dya","Sa_G":"sa_g",
+  "Muskila + Simona Abdallah":"muskila-plus-simona-abdallah",
+  "¥ØU$UK€ ¥UK1MAT$U":"yousuke-yukimatsu",
+  "Smøgmænd":"smoegmaend","Døtre":"doetre",
+  "Angående Mig":"angaaende-mig","Krøyer":"kroeyer",
+  "Naïka":"naika","ŠIROM":"sirom",
+  "Smag På Dig Selv":"smag-paa-dig-selv"
+};
 
 // Latest announced (March 2026)
 const LATEST_NAMES=[
@@ -328,12 +340,13 @@ async function enrichArtistData(){
   const total=allNames.length;
 
   function makeSlug(name){
+    if(SLUG_OVERRIDES[name])return SLUG_OVERRIDES[name];
     return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
   // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v3';
+  const cacheKey='rf26_artist_data_v4';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
