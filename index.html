@@ -37,6 +37,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .day-section{margin-bottom:2.5rem}
 .day-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid rgba(0,0,0,.1)}
 .day-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;background:#fff}
+.day-first_days .day-dot{background:#ffaa44}
 .day-name{font-family:'Oswald',sans-serif;font-size:1.8rem;color:#fff;font-weight:700;text-transform:uppercase}
 .day-date{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
@@ -163,10 +164,33 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 const PROGRAM_URL='https://www.roskilde-festival.dk/program';
 const PROGRAM_EN='https://www.roskilde-festival.dk/en/line-up';
 const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
-const DAYS_CONFIG=[{key:'ons',name:'Onsdag',date:'1. juli'},{key:'tor',name:'Torsdag',date:'2. juli'},{key:'fre',name:'Fredag',date:'3. juli'},{key:'lor',name:'Lørdag',date:'4. juli'}];
-const DAY_MAP={'Wed':'ons','Thu':'tor','Fri':'fre','Sat':'lor','ONS':'ons','TOR':'tor','FRE':'fre','LØR':'lor','Ons':'ons','Tor':'tor','Fre':'fre','Lør':'lor'};
+const DAYS_CONFIG=[
+  {key:'first_days',name:'First Days',date:'27-30. juni'},
+  {key:'ons',name:'Onsdag',date:'1. juli'},
+  {key:'tor',name:'Torsdag',date:'2. juli'},
+  {key:'fre',name:'Fredag',date:'3. juli'},
+  {key:'lor',name:'Lørdag',date:'4. juli'}
+];
+const DAY_MAP={'Wed':'ons','Thu':'tor','Fri':'fre','Sat':'lor','ONS':'ons','TOR':'tor','FRE':'fre','LØR':'lor','Ons':'ons','Tor':'tor','Fre':'fre','Lør':'lor','onsdag':'ons','torsdag':'tor','fredag':'fre','lørdag':'lor'};
 const STAGES_ORDER=['Orange','Arena','Avalon','Gloria','Eos','Pavillon'];
 const HEADLINER_NAMES=['Gorillaz','The Cure','Zara Larsson','David Byrne','Tobias Rahim'];
+
+// First Days artists (27-29 juni) + Pil opens Orange
+const FIRST_DAYS_NAMES=[
+  "Pil","100% Wet","A Good Year","Alawari","Alice Ai","Ana Juél","Augusta Schackinger",
+  "Berg","Carlina de Place","Club Live","Demersal","Diket Dork","Døtre","Eros For You",
+  "Fauna","GB","Glayden","Grande Mahogany","Ida Duelund","Karoline Mousing","Kayak",
+  "Kōya","Mami Umami","Masiv","Miaw","Michael Williams","Morild",
+  "Muskila + Simona Abdallah","Oskar Witt","Ozzy","Pistol Pistol Pistol","Ponny",
+  "Portal Pets","Pumpegris","Sa_G","Salver","Scam","Smøgmænd","Spawner","Will","Zuloo"
+];
+
+// Latest announced (March 2026)
+const LATEST_NAMES=[
+  "TV-2","Igorrr","The Savage Rose","Young Miko","Zar Paulo",
+  "Albertslund Terror Korps","Angående Mig","AySay","Blawan","Cuirass",
+  "Eee Gee","Shovel Dance Collective","Smag På Dig Selv","Susobrino","Vilde Tuv"
+];
 
 // ═══════════════════════════════════════════════════════
 // CACHED LINEUP — kun kunstnernavne som fallback
@@ -191,7 +215,8 @@ const CACHED_NAMES=[
   "Primitive Man","Sara Parkman","Sherelle","ŠIROM","Snuggle","Sorry",
   "The Callous Daoboys","The New Eves","The Sophs","The Zawose Queens",
   "Titanic","Tonser","Truck Violence","Tuvaband","Uld","Vanessa Amara",
-  "Vgtbl.pl","Wicky","Yerai Cortés"
+  "Vgtbl.pl","Wicky","Yerai Cortés",
+  ...FIRST_DAYS_NAMES,...LATEST_NAMES
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -599,6 +624,10 @@ async function init(){
     for(const{name,slug}of liveArtists){
       LINEUP[name]={day:'',stage:'',time:'',_slug:slug};
     }
+    // Add First Days + latest artists if missing from live scrape
+    for(const name of [...FIRST_DAYS_NAMES,...LATEST_NAMES]){
+      if(!LINEUP[name]) LINEUP[name]={day:'',stage:'',time:''};
+    }
     dataIsLive=true;
     src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere hentet`;
     src.className='data-source live';
@@ -611,6 +640,12 @@ async function init(){
     dataIsLive=false;
     src.textContent=`⚠ Bruger cached navne — ${Object.keys(LINEUP).length} kunstnere`;
     src.className='data-source cached';
+  }
+
+  // Mark First Days artists
+  const fdSet=new Set(FIRST_DAYS_NAMES);
+  for(const[name,info]of Object.entries(LINEUP)){
+    if(fdSet.has(name)&&!info.day) info.day='first_days';
   }
 
   // Render immediately with whatever data we have
