@@ -35,14 +35,13 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .loading-indicator::after{content:'';display:inline-block;width:1em;height:1em;border:2px solid #fff;border-top-color:transparent;border-radius:50%;margin-left:.5rem;animation:spin .6s linear infinite;vertical-align:middle}
 .day-container{max-width:1200px;margin:0 auto;padding:0 1rem}
 .day-section{margin-bottom:2.5rem}
-.day-section.day-fd_lor,.day-section.day-fd_son,.day-section.day-fd_man,.day-section.day-fd_tir,.day-section.day-first_days{background:rgba(255,255,255,.06);border-radius:6px;padding:1rem;margin-left:-.5rem;margin-right:-.5rem}
+.day-section.day-fd_son,.day-section.day-fd_man,.day-section.day-fd_tir,.day-section.day-first_days{background:rgba(255,255,255,.06);border-radius:6px;padding:1rem;margin-left:-.5rem;margin-right:-.5rem}
 .day-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid rgba(0,0,0,.1)}
 .day-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;background:#fff}
 .day-first_days .day-dot{background:#ffaa44}
-.day-fd_lor .day-dot{background:#ffaa44}
-.day-fd_son .day-dot{background:#ffbb55}
-.day-fd_man .day-dot{background:#ffcc66}
-.day-fd_tir .day-dot{background:#ffdd77}
+.day-fd_son .day-dot{background:#ffaa44}
+.day-fd_man .day-dot{background:#ffbb55}
+.day-fd_tir .day-dot{background:#ffcc66}
 .day-name{font-family:'Oswald',sans-serif;font-size:1.8rem;color:#fff;font-weight:700;text-transform:uppercase}
 .day-date{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
@@ -170,11 +169,10 @@ const PROGRAM_URL='https://www.roskilde-festival.dk/program';
 const PROGRAM_EN='https://www.roskilde-festival.dk/en/line-up';
 const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
 const DAYS_CONFIG=[
-  {key:'fd_lor',name:'Lørdag (First Days)',date:'27. juni'},
   {key:'fd_son',name:'Søndag (First Days)',date:'28. juni'},
   {key:'fd_man',name:'Mandag (First Days)',date:'29. juni'},
   {key:'fd_tir',name:'Tirsdag (First Days)',date:'30. juni'},
-  {key:'first_days',name:'First Days',date:'27-30. juni'},
+  {key:'first_days',name:'First Days',date:'28-30. juni'},
   {key:'ons',name:'Onsdag',date:'1. juli'},
   {key:'tor',name:'Torsdag',date:'2. juli'},
   {key:'fre',name:'Fredag',date:'3. juli'},
@@ -269,9 +267,11 @@ function parseArtistPage(html){
     const dayName=dayMatch[1].toLowerCase();
     const month=dayMatch[2].toLowerCase();
     if(month==='juni'||month==='june'){
-      // First Days: map to specific fd_ keys, or lørdag 27/6 → fd_lor
-      if(dayName==='lørdag'||dayName==='saturday') day='fd_lor';
-      else day=dayMap[dayName]||'first_days';
+      // First Days: søndag 28 - tirsdag 30 juni
+      if(dayName==='søndag'||dayName==='sunday') day='fd_son';
+      else if(dayName==='mandag'||dayName==='monday') day='fd_man';
+      else if(dayName==='tirsdag'||dayName==='tuesday') day='fd_tir';
+      else day='first_days';
     } else {
       // Juli: normal final days, but lørdag in juli is 4/7
       day=dayMap[dayName]||'';
@@ -333,7 +333,7 @@ async function enrichArtistData(){
   }
 
   // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v2';
+  const cacheKey='rf26_artist_data_v3';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
