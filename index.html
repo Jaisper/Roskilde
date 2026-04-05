@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Roskilde Festival 2026 — Kunstner Anbefaler</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Cpath d='M50 0C55 15 70 25 85 20C78 35 80 50 90 65C75 55 60 55 50 70C40 55 25 55 10 65C20 50 22 35 15 20C30 25 45 15 50 0Z' fill='%23e8621e'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAACZ0lEQVR42u2Xz0tUURTHP/f9csYfJZYiCRNIP1AoyMIoK2xR/QFtbJFkJFG4D4JWSu2CSiowiVa1aBmVRItqjAI3IhiERqXmr/HXqOPM3PfeaS2ZvKEns8gDd3UP937u95x7zr1KRMinGeTZNgE2AXICcBcnJTPzTfIHkBhi+X1n/hQwPI3/sZvs4viaKuiZ75Ls7ZINA/CSv5BEktTrjjXnU58fIUNvN06B7NgAVkThxh+y+Kl71UkzY/2S6bmNn5rJCcDKxVlG+sAQTNsm8/Qy3vgXcfafxZvsJ/2qHUuvILM/cgJQQXuBTiUkebMWY2kaTBsQvLSLYRr4vo/lWGAoXDHYcq0fp2KvCjUEejiOzE2jLBvEBxR21MHzfTBAZ118rTHTWdyRvvBzINP/HCUgKFAK5fto7WE1tlF05Q2R84/xY4dxVwQ9/CHcEOiFUVm4tQ8zswCGhQK0FiLN3ZQcal4l9ezdUyJTA2zrmAgvBMvxB6j5eZTpgFK4KU3BybY/NgcobnmCl14iPfhSQgFwF0bF6+3CjFqICGiNKq+i8MyNNf2dkh0q0nCJdPx+ODkw/6wVmZhGDMBQ+BnBPtqKVVj2V4mjx6+SHY6TTnyVfwJIz/4Up+4ckQv30HYRuC4UFxE52LTuovb2Pcoqi5HpaQ9QXEQCjcV3dyTRgsx1NkoQ/+SL6zJ1EUmND67rH/gaFtQ3I1sjWNXHgsW2ogazoYloZY0KpRTbkVJl7DwgZlVdsBq/+wRO7elwe4GK1WOW7wqmWGks3FIMYFXVYZZU5u9B4lQfwSwuV2ECqM2f0SbAfw/wG6AmSXi/F/vqAAAAAElFTkSuQmCC">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#e8621e;--surface:rgba(0,0,0,.08);--surface2:rgba(0,0,0,.12);--border:rgba(0,0,0,.15);--text:#fff;--text-dim:rgba(255,255,255,.7)}
@@ -35,6 +35,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .loading-indicator::after{content:'';display:inline-block;width:1em;height:1em;border:2px solid #fff;border-top-color:transparent;border-radius:50%;margin-left:.5rem;animation:spin .6s linear infinite;vertical-align:middle}
 .day-container{max-width:1200px;margin:0 auto;padding:0 1rem}
 .day-section{margin-bottom:2.5rem}
+.day-section.day-fd_lor,.day-section.day-fd_son,.day-section.day-fd_man,.day-section.day-fd_tir,.day-section.day-first_days{background:rgba(255,255,255,.06);border-radius:6px;padding:1rem;margin-left:-.5rem;margin-right:-.5rem}
 .day-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid rgba(0,0,0,.1)}
 .day-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;background:#fff}
 .day-first_days .day-dot{background:#ffaa44}
