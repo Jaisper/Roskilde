@@ -14,7 +14,8 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .logo{font-family:'Oswald',sans-serif;font-size:clamp(2.5rem,8vw,5rem);font-weight:700;letter-spacing:.05em;text-transform:uppercase;line-height:1;color:#fff}
 .subtitle{font-size:.9rem;letter-spacing:.3em;text-transform:uppercase;color:var(--text-dim);margin-top:.5rem;font-weight:600}
 .year-badge{display:inline-block;margin-top:1rem;padding:.3rem 1.2rem;border:2px solid #fff;color:#fff;font-family:'Oswald',sans-serif;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;font-weight:600}
-.data-source{font-size:.7rem;color:var(--text-dim);margin-top:.5rem}.data-source.live{color:#003300}.data-source.cached{color:#660000}
+.data-source{font-size:.95rem;color:var(--text-dim);margin-top:.75rem;font-weight:600;transition:all .3s ease}.data-source.live{color:rgba(255,255,255,.8)}.data-source.cached{color:rgba(255,255,255,.5)}.data-source.updating{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .api-section{max-width:600px;margin:2rem auto;padding:0 1.5rem}
 .api-box{background:var(--surface);border:1px solid var(--border);padding:1.25rem;border-radius:4px}
 .api-box summary{font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;font-weight:600}
@@ -437,6 +438,7 @@ async function enrichArtistData(){
     // Update status
     const done=Math.min(i+BATCH,needsFetch.length);
     src.textContent=`🔄 Henter dag/scene... ${done}/${needsFetch.length}`;
+    src.className='data-source updating';
 
     // Re-render every 4th batch to avoid flicker
     if((i/BATCH)%4===3 || i+BATCH>=needsFetch.length){
@@ -686,6 +688,7 @@ async function init(){
 
   // Step 1: try to get artist list from program page
   src.textContent='Henter kunstnerliste fra roskilde-festival.dk...';
+  src.className='data-source updating';
   const liveArtists=await fetchLiveLineup();
 
   // Helper: case-insensitive lookup in LINEUP
