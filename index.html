@@ -71,6 +71,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .rec-badge{display:none;align-items:center;justify-content:center;background:#ffd700;color:#000;font-size:.65rem;font-weight:700;padding:.15rem .4rem;flex-shrink:0;border-radius:2px}
 .headliner-tag{font-family:'Oswald',sans-serif;font-size:.65rem;letter-spacing:.1em;color:var(--bg);text-transform:uppercase;flex-shrink:0;background:#fff;padding:.2rem .5rem;font-weight:600;border-radius:2px}
 .genre-section{max-width:1200px;margin:2rem auto 0;padding:0 1.5rem}
+.personal-fav-section{max-width:1200px;margin:1.5rem auto 0;padding:0 1.5rem;text-align:center}
 .genre-header{font-family:'Oswald',sans-serif;font-size:1.2rem;color:#fff;margin-bottom:.75rem;text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:.1em}
 .genre-hint{font-family:'Source Sans 3',sans-serif;font-size:.9rem;color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0}
 .genre-grid{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center}
@@ -131,6 +132,10 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
     <div class="genre-chip" data-genre="Global/Afro">Global/Afro</div>
     <div class="genre-chip" data-genre="Eksperimentel">Eksperimentel</div>
   </div>
+</div>
+<div class="personal-fav-section">
+  <div class="genre-header">🎤 Egne favorit-kunstnere <span class="genre-hint">(valgfrit — op til 3, kommasepareret)</span></div>
+  <input type="text" id="personalFavs" placeholder="F.eks. Radiohead, Björk, Kendrick Lamar" maxlength="200" style="width:100%;max-width:600px;background:rgba(0,0,0,.1);border:2px solid rgba(255,255,255,.25);color:#fff;padding:.6rem .75rem;font-family:'Source Sans 3',sans-serif;font-size:.95rem;border-radius:3px;text-align:center">
 </div>
 <div class="instructions">
   <p>Tryk <strong>🎵</strong> på de kunstnere du kender og kan lide, og vælg dine <strong>favorit genrer</strong>.<br>AI'en anbefaler derefter hvilke <strong>andre kunstnere</strong> du bør opleve.</p>
@@ -549,8 +554,8 @@ function renderBandCard(band,parent){
 }
 
 function toggleBand(b,c){if(selected.has(b)){selected.delete(b);c.classList.remove('selected')}else{selected.add(b);c.classList.add('selected');c.style.transform='scale(1.03)';setTimeout(()=>c.style.transform='',150)}updateCounter()}
-function updateCounter(){const b=selected.size,g=selectedGenres.size,p=[];if(b>0)p.push(b+' kunstner'+(b>1?'e':''));if(g>0)p.push(g+' genre'+(g>1?'r':''));document.getElementById('favText').textContent=p.length>0?'Valgte: '+p.join(' · '):'Vælg kunstnere og/eller genrer ovenfor';document.getElementById('recBtn').disabled=b<1&&g<1}
-function clearSelections(){selected.clear();selectedGenres.clear();recommended.clear();document.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('active'));renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
+function updateCounter(){const b=selected.size,g=selectedGenres.size,pf=(document.getElementById('personalFavs')?.value||'').split(',').map(s=>s.trim()).filter(s=>s).length,p=[];if(b>0)p.push(b+' kunstner'+(b>1?'e':''));if(g>0)p.push(g+' genre'+(g>1?'r':''));if(pf>0)p.push(pf+' egne favorit'+(pf>1?'ter':''));document.getElementById('favText').textContent=p.length>0?'Valgte: '+p.join(' · '):'Vælg kunstnere, genrer og/eller egne favoritter';document.getElementById('recBtn').disabled=b<1&&g<1&&pf<1}
+function clearSelections(){selected.clear();selectedGenres.clear();recommended.clear();document.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('active'));document.getElementById('personalFavs').value='';renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
 function clearRecommendations(){recommended.clear();renderDays();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
 function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(!k.startsWith('gsk_')){document.getElementById('apiStatus').textContent='✗ Nøglen skal starte med gsk_';document.getElementById('apiStatus').style.color='#c23c2c';return}localStorage.setItem('groq_api_key',k);document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84'}
 
@@ -561,7 +566,9 @@ async function getRecommendations(){
   const apiKey=localStorage.getItem('groq_api_key')||document.getElementById('apiKey').value.trim();
   if(!apiKey){document.getElementById('apiBox').setAttribute('open','');document.getElementById('apiStatus').textContent='✗ Indtast Groq API nøgle';document.getElementById('apiStatus').style.color='#c23c2c';return}
   const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));
-  if(!fav.length&&!selectedGenres.size)return;
+  const personalRaw=document.getElementById('personalFavs').value.trim();
+  const personalFavs=personalRaw?personalRaw.split(',').map(s=>s.trim()).filter(s=>s).slice(0,3):[];
+  if(!fav.length&&!selectedGenres.size&&!personalFavs.length)return;
   const model=document.getElementById('modelSelect').value;
   const isSmallLimit=model.includes('gpt-oss')||model==='compound-beta';
   const btn=document.getElementById('recBtn');btn.classList.add('loading');
@@ -570,22 +577,21 @@ async function getRecommendations(){
   const rl=isSmallLimit
     ? rem.map(b=>b).join(', ')
     : rem.map(b=>{const i=LINEUP[b],d=DAYS_CONFIG.find(x=>x.key===i.day);return`• ${b}${d?' ('+d.name+')':''}${i.stage?' — '+i.stage:''}`}).join('\n');
-  const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0;
+  const hasFavs=fav.length>0,hasGenres=selectedGenres.size>0,hasPersonal=personalFavs.length>0;
   const genreList=Array.from(selectedGenres).map(g=>g).join(', ');
+  
+  const parts=[];
+  if(hasFavs)parts.push(`Favoritter fra Roskilde: ${fav.join(', ')}`);
+  if(hasPersonal)parts.push(`Brugerens yndlingskunstnere generelt (IKKE på festivalen): ${personalFavs.join(', ')}`);
+  if(hasGenres)parts.push(`Foretrukne genrer: ${genreList}`);
+  
   let introText;
-  if(hasFavs&&hasGenres){
-    introText=`Brugerens favoritter: ${fav.join(', ')}
-Brugerens foretrukne genrer: ${genreList}
-Anbefal kunstnere der ligner favoritterne OG matcher de valgte genrer (inkl. nært beslægtede subgenrer).`;
-  }else if(hasFavs){
-    introText=`Brugerens favoritter: ${fav.join(', ')}
-Anbefal kunstnere med lignende lyd og stil.`;
+  if(hasPersonal&&!hasFavs&&!hasGenres){
+    introText=`${parts.join('\n')}\nAnbefal kunstnere der ligner disse i lyd, stil og genre.`;
+  }else if(parts.length>0){
+    introText=`${parts.join('\n')}\nAnbefal kunstnere der matcher ovenstående præferencer (inkl. nært beslægtede subgenrer).`;
   }else{
-    introText=`Brugerens foretrukne genrer: ${genreList}
-Anbefal kunstnere der spiller ${genreList} eller nært beslægtede subgenrer.
-F.eks. matcher "Punk" også post-punk, punk-rock, hardcore punk osv.
-F.eks. matcher "Rock" også indie-rock, alt-rock, post-rock osv.
-Men vær fornuftig — anbefal ikke metal til en pop-bruger eller pop til en metal-bruger.`;
+    introText='';
   }
   const prompt=`Roskilde Festival 2026 koncertanbefaler.
 ${introText}
@@ -753,6 +759,9 @@ async function init(){
       updateCounter();
     });
   });
+
+  // Personal favorites input
+  document.getElementById('personalFavs').addEventListener('input',()=>updateCounter());
 
   // Step 2: progressively enrich with day/stage from individual artist pages
   enrichArtistData();
