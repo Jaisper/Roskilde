@@ -574,21 +574,31 @@ async function getRecommendations(){
   const genreList=Array.from(selectedGenres).map(g=>g).join(', ');
   let introText;
   if(hasFavs&&hasGenres){
-    introText=`Favoritter: ${fav.join(', ')}\nGenrer: ${genreList}`;
+    introText=`Brugerens favoritter: ${fav.join(', ')}
+Brugerens foretrukne genrer: ${genreList}
+Anbefal kunstnere der ligner favoritterne OG matcher de valgte genrer.`;
   }else if(hasFavs){
-    introText=`Favoritter: ${fav.join(', ')}`;
+    introText=`Brugerens favoritter: ${fav.join(', ')}
+Anbefal kunstnere med lignende lyd og stil.`;
   }else{
-    introText=`Genrer: ${genreList}`;
+    introText=`Brugerens foretrukne genrer: ${genreList}
+VIGTIGT: Anbefal KUN kunstnere der FAKTISK spiller ${genreList}. 
+Medtag IKKE kunstnere fra andre genrer — hellere 5 rigtige end 20 forkerte.
+F.eks. hvis brugeren vælger "Pop", anbefal KUN pop-kunstnere. Rock, metal, punk osv. er IKKE pop.`;
   }
   const prompt=`Roskilde Festival 2026 koncertanbefaler.
 ${introText}
 
-Øvrige kunstnere (BRUG PRÆCIS DISSE NAVNE i dit svar):
+Kunstnere at vælge fra (BRUG PRÆCIS DISSE NAVNE):
 ${rl}
 
-Anbefal op til 20 kunstnere du KENDER. KUN kendte kunstnere, spring ukendte over. 2-3 sætninger dansk per kunstner. OPFIND ALDRIG fakta.
-KRITISK: "band" feltet SKAL være KOPIERET PRÆCIST fra listen ovenfor — samme store/små bogstaver, samme tegn.
-JSON array, INGEN anden tekst: [{"rank":1,"band":"PRÆCIST NAVN FRA LISTEN","reason":"beskrivelse","match":"95%"}]`;
+REGLER:
+1. Anbefal KUN kunstnere du KENDER og som FAKTISK matcher de valgte genrer/favoritter
+2. Vær STRENG med genre-match — en kunstner skal primært spille den valgte genre
+3. Spring kunstnere over du ikke kender eller som ikke matcher
+4. 2-3 sætninger dansk per kunstner, OPFIND ALDRIG fakta
+5. "band" feltet SKAL kopieres PRÆCIST fra listen
+JSON array, INGEN anden tekst: [{"rank":1,"band":"PRÆCIST NAVN","reason":"beskrivelse","match":"95%"}]`;
 
   // Build lookup for fuzzy matching AI response to LINEUP keys
   const lineupLookup={};
