@@ -346,7 +346,7 @@ async function enrichArtistData(){
   }
 
   // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v4';
+  const cacheKey='rf26_artist_data_v5';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
@@ -468,7 +468,7 @@ async function enrichArtistData(){
 // SPOTIFY + RENDER
 // ═══════════════════════════════════════════════════════
 const SPOTIFY_SVG=`<svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>`;
-function getSpotifyUrl(n){return`https://open.spotify.com/search/${encodeURIComponent(n.replace(/[()]/g,'').trim())}`}
+function getSpotifyUrl(n){return`https://open.spotify.com/search/${encodeURIComponent(n.replace(/[()%]/g,' ').replace(/\s+/g,' ').trim())}`}
 
 function getActiveStages(){const s=new Set();Object.values(LINEUP).forEach(i=>{if(i.stage)s.add(i.stage)});return STAGES_ORDER.filter(x=>s.has(x))}
 
@@ -581,10 +581,16 @@ async function getRecommendations(){
   const prompt=`Roskilde Festival 2026 koncertanbefaler.
 ${introText}
 
-Øvrige kunstnere: ${rl}
+Øvrige kunstnere (BRUG PRÆCIS DISSE NAVNE i dit svar):
+${rl}
 
 Anbefal op til 20 kunstnere du KENDER. KUN kendte kunstnere, spring ukendte over. 2-3 sætninger dansk per kunstner. OPFIND ALDRIG fakta.
-JSON array: [{"rank":1,"band":"NAVN","reason":"beskrivelse","match":"95%"}]`;
+KRITISK: "band" feltet SKAL være KOPIERET PRÆCIST fra listen ovenfor — samme store/små bogstaver, samme tegn.
+JSON array, INGEN anden tekst: [{"rank":1,"band":"PRÆCIST NAVN FRA LISTEN","reason":"beskrivelse","match":"95%"}]`;
+
+  // Build lookup for fuzzy matching AI response to LINEUP keys
+  const lineupLookup={};
+  for(const k of Object.keys(LINEUP)) lineupLookup[k.toLowerCase().trim()]=k;
 
   async function callGroq(m,retries){
     if(retries===undefined)retries=2;
@@ -622,17 +628,41 @@ JSON array: [{"rank":1,"band":"NAVN","reason":"beskrivelse","match":"95%"}]`;
 }
 
 function displayRecommendations(recs){
-  // Filter out already-selected favorites
-  recs=recs.filter(r=>{const m=Object.keys(LINEUP).find(b=>b.toLowerCase()===r.band.toLowerCase());return!m||!selected.has(m)});
-  // Re-rank after filtering
+  // Fuzzy match helper: find LINEUP key from AI-returned name
+  function matchBand(name){
+    if(!name)return null;
+    // Exact match
+    if(LINEUP[name])return name;
+    // Case-insensitive
+    const low=name.toLowerCase().trim();
+    const found=Object.keys(LINEUP).find(k=>k.toLowerCase()===low);
+    if(found)return found;
+    // Strip "The " prefix and retry
+    const noThe=low.replace(/^the\s+/,'');
+    const found2=Object.keys(LINEUP).find(k=>k.toLowerCase().replace(/^the\s+/,'')===noThe);
+    if(found2)return found2;
+    // Partial match (name contains or is contained)
+    const found3=Object.keys(LINEUP).find(k=>k.toLowerCase().includes(low)||low.includes(k.toLowerCase()));
+    return found3||null;
+  }
+
+  // Filter: remove already-selected favorites and unmatched names
+  recs=recs.filter(r=>{
+    const m=matchBand(r.band);
+    if(!m)return false; // skip if not in lineup
+    r._matchedName=m; // store matched name
+    return!selected.has(m);
+  });
+  // Re-rank
   recs.forEach((r,i)=>r.rank=i+1);
-  recommended.clear();recs.forEach(r=>{const m=Object.keys(LINEUP).find(b=>b.toLowerCase()===r.band.toLowerCase());if(m)recommended.set(m,r.rank)});renderDays();
+  recommended.clear();recs.forEach(r=>{if(r._matchedName)recommended.set(r._matchedName,r.rank)});renderDays();
   const res=document.getElementById('results'),list=document.getElementById('resultsList');res.classList.remove('hidden');list.innerHTML='';
   recs.forEach((r,i)=>{
-    const bk=Object.keys(LINEUP).find(b=>b.toLowerCase()===r.band.toLowerCase()),info=bk?LINEUP[bk]:null,dayObj=info?DAYS_CONFIG.find(d=>d.key===info.day):null;
-    const slug=r.band.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const bk=r._matchedName,info=bk?LINEUP[bk]:null,dayObj=info?DAYS_CONFIG.find(d=>d.key===info.day):null;
+    const displayName=bk||r.band;
+    const slug=SLUG_OVERRIDES[displayName]||displayName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const item=document.createElement('div');item.className=`result-item ${i<10?'top-10':'top-20'}`;item.style.animationDelay=`${i*.05}s`;
-    item.innerHTML=`<div class="result-rank">${r.rank}</div><div class="result-content"><div class="result-name"><a href="https://www.roskilde-festival.dk/program/musik/${slug}/" target="_blank">${r.band}</a> <a href="${getSpotifyUrl(r.band)}" target="_blank" class="spotify-link" style="display:inline-flex;vertical-align:middle;margin-left:.3rem">${SPOTIFY_SVG}</a></div>${dayObj?`<div class="result-day-stage"><span class="day-label day-${info.day}">${dayObj.name}</span>${info.stage?' · '+info.stage:''}</div>`:''}<div class="result-reason">${r.reason}</div><div class="result-match">${r.match} match</div></div>`;
+    item.innerHTML=`<div class="result-rank">${r.rank}</div><div class="result-content"><div class="result-name"><a href="https://www.roskilde-festival.dk/program/musik/${slug}/" target="_blank">${displayName}</a> <a href="${getSpotifyUrl(displayName)}" target="_blank" class="spotify-link" style="display:inline-flex;vertical-align:middle;margin-left:.3rem">${SPOTIFY_SVG}</a></div>${dayObj?`<div class="result-day-stage"><span class="day-label day-${info.day}">${dayObj.name}</span>${info.stage?' · '+info.stage:''}</div>`:''}<div class="result-reason">${r.reason}</div><div class="result-match">${r.match} match</div></div>`;
     list.appendChild(item);
   });
   document.getElementById('clearRecBtn').classList.remove('hidden');res.scrollIntoView({behavior:'smooth',block:'start'});
@@ -658,14 +688,24 @@ async function init(){
   src.textContent='Henter kunstnerliste fra roskilde-festival.dk...';
   const liveArtists=await fetchLiveLineup();
 
+  // Helper: case-insensitive lookup in LINEUP
+  function findInLineup(name){
+    if(LINEUP[name])return name;
+    const low=name.toLowerCase();
+    return Object.keys(LINEUP).find(k=>k.toLowerCase()===low)||null;
+  }
+
   if(liveArtists&&liveArtists.length>=20){
     LINEUP={};
     for(const{name,slug}of liveArtists){
-      LINEUP[name]={day:'',stage:'',time:'',_slug:slug};
+      // Prefer the cached/known name casing if available
+      const knownName=CACHED_NAMES.find(c=>c.toLowerCase()===name.toLowerCase());
+      const useName=knownName||name;
+      if(!LINEUP[useName]) LINEUP[useName]={day:'',stage:'',time:'',_slug:slug};
     }
     // Add First Days + latest artists if missing from live scrape
     for(const name of [...FIRST_DAYS_NAMES,...LATEST_NAMES]){
-      if(!LINEUP[name]) LINEUP[name]={day:'',stage:'',time:''};
+      if(!findInLineup(name)) LINEUP[name]={day:'',stage:'',time:''};
     }
     dataIsLive=true;
     src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere hentet`;
@@ -681,10 +721,10 @@ async function init(){
     src.className='data-source cached';
   }
 
-  // Mark First Days artists
-  const fdSet=new Set(FIRST_DAYS_NAMES);
+  // Mark First Days artists (case-insensitive)
+  const fdSet=new Set(FIRST_DAYS_NAMES.map(n=>n.toLowerCase()));
   for(const[name,info]of Object.entries(LINEUP)){
-    if(fdSet.has(name)&&!info.day) info.day='first_days';
+    if(fdSet.has(name.toLowerCase())&&!info.day) info.day='first_days';
   }
 
   // Render immediately with whatever data we have
