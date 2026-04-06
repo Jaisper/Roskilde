@@ -437,7 +437,7 @@ async function enrichArtistData(){
 
     // Update status
     const done=Math.min(i+BATCH,needsFetch.length);
-    src.textContent=`🔄 Henter dag/scene... ${done}/${needsFetch.length}`;
+    src.textContent=`🔄 Vent lidt... opdaterer program ${done}/${needsFetch.length}`;
     src.className='data-source updating';
 
     // Re-render every 4th batch to avoid flicker
