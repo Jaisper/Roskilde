@@ -222,7 +222,7 @@ const DAYS_CONFIG=[
   {key:'lor',name:'Lørdag',date:'4. juli'}
 ];
 const DAY_MAP={'Wed':'ons','Thu':'tor','Fri':'fre','Sat':'lor','ONS':'ons','TOR':'tor','FRE':'fre','LØR':'lor','Ons':'ons','Tor':'tor','Fre':'fre','Lør':'lor','onsdag':'ons','torsdag':'tor','fredag':'fre','lørdag':'lor'};
-const STAGES_ORDER=['Orange','Arena','Avalon','Gloria','Eos','Pavillon','Fauna','Lagune'];
+const STAGES_ORDER=['Orange','Arena','Gloria','Eos','Fauna','Lagune','Platform'];
 const HEADLINER_NAMES=['Gorillaz','The Cure','Zara Larsson','David Byrne','Tobias Rahim'];
 
 // First Days artists (28-30 juni) + Pil opens Orange
@@ -334,19 +334,19 @@ function parseArtistPage(html){
   }
 
   // Stage: match "Orange Scene" or standalone "Orange" near time/day context
-  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune)\s+Scene/i);
+  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune|Platform)\s+Scene/i);
   if(stageMatch){
     stage=stageMatch[1].charAt(0).toUpperCase()+stageMatch[1].slice(1).toLowerCase();
   }
   // Fallback: match from bullet list "15.00, Eos" (stage extracted in time parsing below)
   if(!stage){
-    const fallback=html.match(/(?:på|indtager|spiller|gæster)\s+(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune)(?:\s+Scene)?/i);
+    const fallback=html.match(/(?:på|indtager|spiller|gæster)\s+(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune|Platform)(?:\s+Scene)?/i);
     if(fallback) stage=fallback[1].charAt(0).toUpperCase()+fallback[1].slice(1).toLowerCase();
   }
 
   // Time: multiple patterns
   // Pattern 1: "15.00, Eos" or "22.00, Orange Scene" or "22:00, Arena"
-  const timeSceneMatch=html.match(/(\d{1,2})[.:](\d{2})\s*,\s*(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Lagune|Fauna)(?:\s+Scene)?/i);
+  const timeSceneMatch=html.match(/(\d{1,2})[.:](\d{2})\s*,\s*(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Lagune|Fauna|Platform)(?:\s+Scene)?/i);
   if(timeSceneMatch){
     const h=parseInt(timeSceneMatch[1]),m=parseInt(timeSceneMatch[2]);
     if((h>=10&&h<=23)||(h>=0&&h<=4)){
@@ -407,7 +407,7 @@ async function enrichArtistData(){
   }
 
   // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v7';
+  const cacheKey='rf26_artist_data_v8';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
