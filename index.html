@@ -49,7 +49,8 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
 .sort-indicator{font-size:.75rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;text-align:right;margin-bottom:.4rem}
 .band-grid{display:flex;flex-direction:column;gap:3px}
-.scene-grid{display:grid;grid-template-columns:repeat(var(--stage-count,6),1fr);gap:3px}
+.scene-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
+.scene-grid{display:grid;gap:3px}
 .scene-column{display:flex;flex-direction:column;gap:3px;min-width:0}
 .scene-header{background:rgba(0,0,0,.12);border:1px solid var(--border);padding:.45rem .5rem;text-align:center;font-family:'Oswald',sans-serif;font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600;position:sticky;top:0;z-index:10}
 .scene-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(0,0,0,.18)}
@@ -136,8 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .result-match{font-size:.85rem;color:#fff;margin-top:.3rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .footer{text-align:center;padding:2rem;border-top:2px solid rgba(0,0,0,.1);font-size:.85rem;color:var(--text-dim)}
 .footer a{color:#fff;text-decoration:none}.footer a:hover{text-decoration:underline}
-@media(max-width:800px){.scene-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:480px){.scene-grid{grid-template-columns:1fr}.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}.day-name{font-size:1.3rem}}
+@media(max-width:480px){.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}.day-name{font-size:1.3rem}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -400,24 +400,16 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v9';
+  // Restore from localStorage cache (persists across sessions)
+  const cacheKey='rf26_data_v10';
   try{
-    const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
-    let usedCache=0;
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||'{}');
     for(const name of allNames){
-      if(cached[name]&&(cached[name].day||cached[name].stage)){
-        if(cached[name].day)LINEUP[name].day=cached[name].day;
+      if(cached[name]){
+        if(cached[name].day&&!LINEUP[name].day)LINEUP[name].day=cached[name].day;
         if(cached[name].stage)LINEUP[name].stage=cached[name].stage;
         if(cached[name].time)LINEUP[name].time=cached[name].time;
-        usedCache++;
       }
-    }
-    if(usedCache>total*0.5){
-      // Majority cached — render immediately, refresh in background
-      src.textContent=`✓ ${total} kunstnere (${usedCache} fra cache)`;
-      src.className='data-source live';
-      renderDays();updateCounter();
     }
   }catch(e){}
 
@@ -509,7 +501,7 @@ async function enrichArtistData(){
     for(const name of allNames){
       fullCache[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
     }
-    sessionStorage.setItem(cacheKey,JSON.stringify(fullCache));
+    localStorage.setItem(cacheKey,JSON.stringify(fullCache));
   }catch(e){}
 
   // Final status
@@ -649,10 +641,15 @@ function renderClassicDay(section,day,dayBands){
   section.appendChild(sortDiv);
 
   const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
+  
+  const sceneWrap=document.createElement('div');
+  sceneWrap.className='scene-wrap';
   const sceneGrid=document.createElement('div');
   sceneGrid.className='scene-grid';
-  sceneGrid.style.setProperty('--stage-count',activeStages.length||1);
-  section.appendChild(sceneGrid);
+  // Min 160px per column so names up to ~20 chars are readable
+  sceneGrid.style.gridTemplateColumns=`repeat(${activeStages.length}, minmax(160px, 1fr))`;
+  sceneWrap.appendChild(sceneGrid);
+  section.appendChild(sceneWrap);
 
   activeStages.forEach((stage,i)=>{
     const col=document.createElement('div');col.className='scene-column';
