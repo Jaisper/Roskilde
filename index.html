@@ -88,10 +88,11 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .genre-chip.active{background:rgba(0,0,0,.25);border-color:#fff;color:#fff;font-weight:700}
 .timeline-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
 .timeline-grid{display:grid;gap:1px}
-.timeline-header{position:sticky;top:0;z-index:10;font-family:'Oswald',sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
+.timeline-header{position:sticky;top:0;z-index:10;font-family:'Oswald',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
+.timeline-header:first-child{position:sticky;left:0;z-index:15;background:var(--bg)}
 .timeline-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3)}
-.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.7rem;color:var(--text-dim);padding:.2rem .3rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
-.timeline-time.hour{color:#ffd700;font-weight:700;font-size:.75rem;border-top:1px solid rgba(255,255,255,.06)}
+.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.65rem;color:var(--text-dim);padding:.1rem .2rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
+.timeline-time.hour{color:#ffd700;font-weight:700;font-size:.7rem;border-top:1px solid rgba(255,255,255,.06)}
 .timeline-slot{min-height:1.8rem;position:relative}
 .timeline-band{position:absolute;left:2px;right:2px;top:1px;background:rgba(0,0,0,.08);border:1px solid var(--border);border-radius:3px;padding:.2rem .4rem;display:flex;align-items:stretch;gap:.3rem;overflow:hidden;cursor:default;transition:all .15s;z-index:2}
 .timeline-band:hover{background:rgba(0,0,0,.15);border-color:rgba(255,255,255,.2);z-index:3}
@@ -583,9 +584,9 @@ function renderTimelineDay(section,day,dayBands,stages){
   const grid=document.createElement('div');
   grid.className='timeline-grid';
   if(window.innerWidth>=700){
-    grid.style.gridTemplateColumns=`3.5rem repeat(${stages.length}, 1fr)`;
+    grid.style.gridTemplateColumns=`2.5rem repeat(${stages.length}, 1fr)`;
   }else{
-    grid.style.gridTemplateColumns=`3.5rem repeat(${stages.length}, minmax(140px, 1fr))`;
+    grid.style.gridTemplateColumns=`2.5rem repeat(${stages.length}, minmax(140px, 1fr))`;
   }
 
   // Header row
