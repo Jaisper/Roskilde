@@ -49,6 +49,10 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
 .sort-indicator{font-size:.75rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;text-align:right;margin-bottom:.4rem}
 .band-grid{display:flex;flex-direction:column;gap:3px}
+.scene-grid{display:grid;grid-template-columns:repeat(var(--stage-count,6),1fr);gap:3px}
+.scene-column{display:flex;flex-direction:column;gap:3px;min-width:0}
+.scene-header{background:rgba(0,0,0,.12);border:1px solid var(--border);padding:.45rem .5rem;text-align:center;font-family:'Oswald',sans-serif;font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600;position:sticky;top:0;z-index:10}
+.scene-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(0,0,0,.18)}
 .stage-block{margin-bottom:1rem}
 .stage-label{font-family:'Oswald',sans-serif;font-size:.95rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);padding:.5rem .75rem;background:rgba(0,0,0,.1);border:1px solid var(--border);margin-bottom:3px;font-weight:600;border-radius:3px}
 .stage-label.main-stage{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(0,0,0,.18)}
@@ -131,7 +135,8 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .result-match{font-size:.85rem;color:#fff;margin-top:.3rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .footer{text-align:center;padding:2rem;border-top:2px solid rgba(0,0,0,.1);font-size:.85rem;color:var(--text-dim)}
 .footer a{color:#fff;text-decoration:none}.footer a:hover{text-decoration:underline}
-@media(max-width:600px){.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}.timeline-grid{min-width:auto!important}.day-name{font-size:1.3rem}}
+@media(max-width:800px){.scene-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.scene-grid{grid-template-columns:1fr}.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}.day-name{font-size:1.3rem}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -648,34 +653,37 @@ function renderClassicDay(section,day,dayBands){
   sortDiv.textContent=ht?'↓ Sorteret efter starttid':'↓ Alfabetisk';
   section.appendChild(sortDiv);
 
-  const byStage={};
-  dayBands.forEach(([name,info])=>{
-    const st=info.stage||'_unknown';
-    if(!byStage[st])byStage[st]=[];
-    byStage[st].push({name,time:info.time||''});
-  });
+  const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
+  const sceneGrid=document.createElement('div');
+  sceneGrid.className='scene-grid';
+  sceneGrid.style.setProperty('--stage-count',activeStages.length||1);
+  section.appendChild(sceneGrid);
 
-  STAGES_ORDER.forEach(stage=>{
-    if(!byStage[stage]||!byStage[stage].length)return;
-    const bands=byStage[stage];
+  activeStages.forEach((stage,i)=>{
+    const col=document.createElement('div');col.className='scene-column';
+    const header=document.createElement('div');
+    header.className=`scene-header${stage==='Orange'?' main-stage':''}`;
+    header.textContent=stage;
+    col.appendChild(header);
+
+    const bands=dayBands.filter(([_,info])=>info.stage===stage).map(([n,info])=>({name:n,time:info.time||''}));
     if(ht)bands.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
     else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
+    bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},col));
 
-    const block=document.createElement('div');block.className='stage-block';
-    block.innerHTML=`<div class="stage-label${stage==='Orange'?' main-stage':''}">${stage} Scene</div><div class="band-grid"></div>`;
-    const grid=block.querySelector('.band-grid');
-    bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},grid));
-    section.appendChild(block);
+    if(!bands.length){const e=document.createElement('div');e.style.cssText='padding:.5rem;text-align:center;font-size:.55rem;color:rgba(255,255,255,.3)';e.textContent='—';col.appendChild(e)}
+    sceneGrid.appendChild(col);
   });
 
-  if(byStage['_unknown']&&byStage['_unknown'].length){
-    const bands=byStage['_unknown'];
-    if(ht)bands.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
-    else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
-    const block=document.createElement('div');block.className='stage-block unknown';
-    block.innerHTML=`<div class="stage-label unknown-label">Scene ikke annonceret</div><div class="band-grid"></div>`;
-    const grid=block.querySelector('.band-grid');
-    bands.forEach(b=>renderBandCard({name:b.name,stage:'',time:b.time},grid));
+  // Unknown stage bands
+  const unknown=dayBands.filter(([_,i])=>!i.stage||!STAGES_ORDER.includes(i.stage)).map(([n,i])=>({name:n,stage:i.stage||'',time:i.time||''}));
+  if(unknown.length){
+    if(ht)unknown.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
+    else unknown.sort((a,b)=>a.name.localeCompare(b.name,'da'));
+    const block=document.createElement('div');block.className='band-grid';block.style.marginTop='6px';
+    const lbl=document.createElement('div');lbl.className='stage-label unknown-label';lbl.textContent='Scene ikke annonceret';
+    section.appendChild(lbl);
+    unknown.forEach(b=>renderBandCard(b,block));
     section.appendChild(block);
   }
 }
@@ -711,16 +719,6 @@ function renderDays(){
       renderClassicDay(s,day,dayBands);
     }
 
-    // Extra bands without known stage not already shown
-    const extraBands=dayBands
-      .filter(([_,info])=>!STAGES_ORDER.includes(info.stage)&&info.stage!=='')
-      .map(([name,info])=>({name,stage:info.stage||'',time:info.time||''}))
-      .sort((a,b)=>a.name.localeCompare(b.name,'da'));
-    if(extraBands.length>0){
-      const eg=document.createElement('div');eg.className='band-grid';eg.style.marginTop='4px';
-      extraBands.forEach(band=>renderBandCard(band,eg));
-      s.appendChild(eg);
-    }
   });
 
   // Unassigned day
