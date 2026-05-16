@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .day-date{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
 .sort-indicator{font-size:.75rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;text-align:right;margin-bottom:.4rem}
-.band-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:3px}
+.band-grid{display:flex;flex-direction:column;gap:3px}
 .stage-block{margin-bottom:1rem}
 .stage-label{font-family:'Oswald',sans-serif;font-size:.95rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);padding:.5rem .75rem;background:rgba(0,0,0,.1);border:1px solid var(--border);margin-bottom:3px;font-weight:600;border-radius:3px}
 .stage-label.main-stage{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(0,0,0,.18)}
@@ -131,7 +131,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .result-match{font-size:.85rem;color:#fff;margin-top:.3rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .footer{text-align:center;padding:2rem;border-top:2px solid rgba(0,0,0,.1);font-size:.85rem;color:var(--text-dim)}
 .footer a{color:#fff;text-decoration:none}.footer a:hover{text-decoration:underline}
-@media(max-width:600px){.band-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}}
+@media(max-width:600px){.header{padding:2rem 1rem 1.5rem}.genre-chip{font-size:.9rem;padding:.4rem .8rem}.timeline-grid{min-width:auto!important}.day-name{font-size:1.3rem}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -550,10 +550,20 @@ function getArtistUrl(name){
 }
 
 function renderTimelineDay(section,day,dayBands,stages){
+  // On small screens, limit to top 2 stages by band count
+  let visibleStages=stages;
+  if(window.innerWidth<700&&stages.length>2){
+    const stageCounts=stages.map(s=>({s,c:dayBands.filter(([_,i])=>i.stage===s&&i.time).length}));
+    stageCounts.sort((a,b)=>b.c-a.c);
+    visibleStages=stageCounts.slice(0,2).map(x=>x.s);
+    // Keep original order
+    visibleStages=stages.filter(s=>visibleStages.includes(s));
+  }
+
   const bandsByStage={};
-  stages.forEach(s=>bandsByStage[s]=[]);
+  visibleStages.forEach(s=>bandsByStage[s]=[]);
   dayBands.forEach(([name,info])=>{
-    if(stages.includes(info.stage)&&info.time){
+    if(visibleStages.includes(info.stage)&&info.time){
       bandsByStage[info.stage].push({name,time:info.time,slot:timeToSlot(info.time)});
     }
   });
@@ -577,11 +587,11 @@ function renderTimelineDay(section,day,dayBands,stages){
 
   const grid=document.createElement('div');
   grid.className='timeline-grid';
-  grid.style.gridTemplateColumns=`3.5rem repeat(${stages.length}, 1fr)`;
+  grid.style.gridTemplateColumns=`3.5rem repeat(${visibleStages.length}, 1fr)`;
 
   // Header row
   const tH=document.createElement('div');tH.className='timeline-header';tH.textContent='TID';grid.appendChild(tH);
-  stages.forEach((s,i)=>{
+  visibleStages.forEach((s,i)=>{
     const h=document.createElement('div');
     h.className=`timeline-header${s==='Orange'?' main-stage':''}`;
     h.textContent=s;grid.appendChild(h);
@@ -594,7 +604,7 @@ function renderTimelineDay(section,day,dayBands,stages){
     tCell.textContent=row.isHour?row.label:'';
     grid.appendChild(tCell);
 
-    stages.forEach(stage=>{
+    visibleStages.forEach(stage=>{
       const cell=document.createElement('div');cell.className='timeline-slot';
       if(row.isHour)cell.style.borderTop='1px solid rgba(255,255,255,.04)';
 
