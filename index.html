@@ -333,30 +333,24 @@ function parseArtistPage(html){
     }
   }
 
-  // Stage: match "Orange Scene" or standalone "Orange" near time/day context
-  const stageMatch=html.match(/(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune|Platform)\s+Scene/i);
-  if(stageMatch){
-    stage=stageMatch[1].charAt(0).toUpperCase()+stageMatch[1].slice(1).toLowerCase();
-  }
-  // Fallback: match from bullet list "15.00, Eos" (stage extracted in time parsing below)
-  if(!stage){
-    const fallback=html.match(/(?:på|indtager|spiller|gæster)\s+(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Fauna|Lagune|Platform)(?:\s+Scene)?/i);
-    if(fallback) stage=fallback[1].charAt(0).toUpperCase()+fallback[1].slice(1).toLowerCase();
-  }
-
-  // Time: multiple patterns
-  // Pattern 1: "15.00, Eos" or "22.00, Orange Scene" or "22:00, Arena"
+  // Time+Stage: parse TOGETHER first (most reliable - from bullet list "15.00, Eos")
   const timeSceneMatch=html.match(/(\d{1,2})[.:](\d{2})\s*,\s*(Orange|Arena|Avalon|Gloria|Eos|Pavillon|Lagune|Fauna|Platform)(?:\s+Scene)?/i);
   if(timeSceneMatch){
     const h=parseInt(timeSceneMatch[1]),m=parseInt(timeSceneMatch[2]);
     if((h>=10&&h<=23)||(h>=0&&h<=4)){
       time=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      if(!stage){
-        stage=timeSceneMatch[3].charAt(0).toUpperCase()+timeSceneMatch[3].slice(1).toLowerCase();
-      }
+      stage=timeSceneMatch[3].charAt(0).toUpperCase()+timeSceneMatch[3].slice(1).toLowerCase();
     }
   }
-  // Pattern 2: "21:00 – 22:30" range format
+
+  // Fallback stage: only if time+scene pattern didn't find it
+  if(!stage){
+    // Match "15.00, Eos Scene" with required Scene suffix (safer, avoids body text matches)
+    const stageMatch=html.match(/(\d{1,2}[.:]\d{2}\s*,\s*)?(Orange|Arena|Gloria|Eos|Fauna|Lagune|Platform)\s+Scene/i);
+    if(stageMatch) stage=stageMatch[2].charAt(0).toUpperCase()+stageMatch[2].slice(1).toLowerCase();
+  }
+
+  // Fallback time: range format "21:00 – 22:30"
   if(!time){
     const timeRange=html.match(/(?:kl\.?\s*)?(\d{1,2})[.:](\d{2})\s*[-–]\s*(\d{1,2})[.:](\d{2})(?:\s|,|<|$)/);
     if(timeRange){
@@ -366,7 +360,7 @@ function parseArtistPage(html){
       }
     }
   }
-  // Pattern 3: standalone "22.00" or "kl. 22.00" near day/scene context
+  // Fallback time: standalone "kl. 22.00" near day context
   if(!time){
     const standalone=html.match(/(?:kl\.?\s+|(?:onsdag|torsdag|fredag|lørdag|søndag|mandag|tirsdag)\s+\d+\.\s*(?:juni|juli)\s+)(\d{1,2})[.:](\d{2})/i);
     if(standalone){
@@ -407,7 +401,7 @@ async function enrichArtistData(){
   }
 
   // Check sessionStorage cache first (clear if version changed)
-  const cacheKey='rf26_artist_data_v8';
+  const cacheKey='rf26_artist_data_v9';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let usedCache=0;
