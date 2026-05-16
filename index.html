@@ -94,7 +94,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.65rem;color:var(--text-dim);padding:.1rem .2rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
 .timeline-time.hour{color:#ffd700;font-weight:700;font-size:.7rem;border-top:1px solid rgba(255,255,255,.06)}
 .timeline-slot{min-height:1.8rem;position:relative}
-.timeline-band{position:absolute;left:2px;right:2px;top:1px;background:rgba(0,0,0,.08);border:1px solid var(--border);border-radius:3px;padding:.2rem .4rem;display:flex;align-items:stretch;gap:.3rem;overflow:hidden;cursor:default;transition:all .15s;z-index:2}
+.timeline-band{position:absolute;left:2px;right:2px;top:1px;background:rgba(0,0,0,.08);border:1px solid var(--border);border-radius:3px;padding:.2rem .4rem;display:flex;align-items:stretch;gap:.3rem;overflow:hidden;cursor:pointer;transition:all .15s;z-index:2}
 .timeline-band:hover{background:rgba(0,0,0,.15);border-color:rgba(255,255,255,.2);z-index:3}
 .timeline-band.selected{background:rgba(0,0,0,.2);border-color:#fff;border-width:2px}
 .timeline-band.selected .tl-icon::after{content:'✓';position:absolute;top:-2px;right:-4px;font-size:.5rem;color:#fff;font-weight:700}
@@ -629,10 +629,10 @@ function renderTimelineDay(section,day,dayBands,stages){
 
         const el=document.createElement('div');el.className=cls;
         el.style.height=`calc(${heightRem}rem - 2px)`;
-        el.innerHTML=`<span class="tl-icon" title="Vælg som favorit">🎵</span><div class="tl-content"><span class="tl-time">${band.time}</span><span class="tl-name"><a href="${artistUrl}" target="_blank">${band.name}</a></span></div><span class="tl-spotify"><a href="${getSpotifyUrl(band.name)}" target="_blank">${SPOTIFY_SVG}</a></span>`;
+        el.innerHTML=`<div class="tl-content"><span class="tl-time">${band.time}</span><span class="tl-name"><a href="${artistUrl}" target="_blank">${band.name}</a></span></div>`;
 
-        el.querySelector('.tl-icon').addEventListener('click',e=>{
-          e.stopPropagation();
+        el.addEventListener('click',e=>{
+          if(e.target.closest('a'))return;
           if(selected.has(band.name)){selected.delete(band.name);el.classList.remove('selected')}
           else{selected.add(band.name);el.classList.add('selected')}
           updateCounter();
