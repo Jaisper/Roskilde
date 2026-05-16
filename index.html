@@ -82,11 +82,11 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .genre-chip{background:rgba(0,0,0,.1);border:2px solid rgba(255,255,255,.25);color:rgba(255,255,255,.75);padding:.5rem 1.1rem;font-family:'Oswald',sans-serif;font-size:1rem;font-weight:500;cursor:pointer;transition:all .15s ease;user-select:none;border-radius:3px;letter-spacing:.05em}
 .genre-chip:hover{border-color:#fff;color:#fff;background:rgba(0,0,0,.15)}
 .genre-chip.active{background:rgba(0,0,0,.25);border-color:#fff;color:#fff;font-weight:700}
-.timeline-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.timeline-grid{display:grid;gap:1px;min-width:600px}
+.timeline-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
+.timeline-grid{display:grid;gap:1px}
 .timeline-header{position:sticky;top:0;z-index:10;font-family:'Oswald',sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
 .timeline-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3)}
-.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.7rem;color:var(--text-dim);padding:.2rem .3rem;text-align:right;background:rgba(0,0,0,.03);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
+.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.7rem;color:var(--text-dim);padding:.2rem .3rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
 .timeline-time.hour{color:#ffd700;font-weight:700;font-size:.75rem;border-top:1px solid rgba(255,255,255,.06)}
 .timeline-slot{min-height:1.8rem;position:relative}
 .timeline-band{position:absolute;left:2px;right:2px;top:1px;background:rgba(0,0,0,.08);border:1px solid var(--border);border-radius:3px;padding:.2rem .4rem;display:flex;align-items:stretch;gap:.3rem;overflow:hidden;cursor:default;transition:all .15s;z-index:2}
@@ -550,20 +550,10 @@ function getArtistUrl(name){
 }
 
 function renderTimelineDay(section,day,dayBands,stages){
-  // On small screens, limit to top 2 stages by band count
-  let visibleStages=stages;
-  if(window.innerWidth<700&&stages.length>2){
-    const stageCounts=stages.map(s=>({s,c:dayBands.filter(([_,i])=>i.stage===s&&i.time).length}));
-    stageCounts.sort((a,b)=>b.c-a.c);
-    visibleStages=stageCounts.slice(0,2).map(x=>x.s);
-    // Keep original order
-    visibleStages=stages.filter(s=>visibleStages.includes(s));
-  }
-
   const bandsByStage={};
-  visibleStages.forEach(s=>bandsByStage[s]=[]);
+  stages.forEach(s=>bandsByStage[s]=[]);
   dayBands.forEach(([name,info])=>{
-    if(visibleStages.includes(info.stage)&&info.time){
+    if(stages.includes(info.stage)&&info.time){
       bandsByStage[info.stage].push({name,time:info.time,slot:timeToSlot(info.time)});
     }
   });
@@ -587,11 +577,15 @@ function renderTimelineDay(section,day,dayBands,stages){
 
   const grid=document.createElement('div');
   grid.className='timeline-grid';
-  grid.style.gridTemplateColumns=`3.5rem repeat(${visibleStages.length}, 1fr)`;
+  if(window.innerWidth>=700){
+    grid.style.gridTemplateColumns=`3.5rem repeat(${stages.length}, 1fr)`;
+  }else{
+    grid.style.gridTemplateColumns=`3.5rem repeat(${stages.length}, minmax(140px, 1fr))`;
+  }
 
   // Header row
   const tH=document.createElement('div');tH.className='timeline-header';tH.textContent='TID';grid.appendChild(tH);
-  visibleStages.forEach((s,i)=>{
+  stages.forEach((s,i)=>{
     const h=document.createElement('div');
     h.className=`timeline-header${s==='Orange'?' main-stage':''}`;
     h.textContent=s;grid.appendChild(h);
@@ -604,7 +598,7 @@ function renderTimelineDay(section,day,dayBands,stages){
     tCell.textContent=row.isHour?row.label:'';
     grid.appendChild(tCell);
 
-    visibleStages.forEach(stage=>{
+    stages.forEach(stage=>{
       const cell=document.createElement('div');cell.className='timeline-slot';
       if(row.isHour)cell.style.borderTop='1px solid rgba(255,255,255,.04)';
 
