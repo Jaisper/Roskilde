@@ -400,37 +400,36 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Restore from localStorage cache
-  const cacheKey='rf26_v13';
-  let cacheHits=0;
-  try{
-    const cached=JSON.parse(localStorage.getItem(cacheKey)||'{}');
-    for(const name of allNames){
-      if(cached[name]){
-        if(cached[name].day&&!LINEUP[name].day) LINEUP[name].day=cached[name].day;
-        if(cached[name].stage) LINEUP[name].stage=cached[name].stage;
-        if(cached[name].time) LINEUP[name].time=cached[name].time;
-        cacheHits++;
-      }
+  // ── CACHE: localStorage med "already tried" tracking ──
+  const cacheKey='rf26_v14';
+  let cache={};
+  try{cache=JSON.parse(localStorage.getItem(cacheKey)||'{}')}catch(e){}
+  
+  // Restore cached data
+  let restored=0;
+  for(const name of allNames){
+    if(cache[name]){
+      if(cache[name].day&&!LINEUP[name].day) LINEUP[name].day=cache[name].day;
+      if(cache[name].stage) LINEUP[name].stage=cache[name].stage;
+      if(cache[name].time) LINEUP[name].time=cache[name].time;
+      restored++;
     }
-  }catch(e){}
+  }
+  
+  if(restored>0){
+    renderDays();updateCounter();
+  }
 
-  // Only fetch bands that still need enrichment
-  const needsFetch=allNames.filter(name=>!LINEUP[name].time||!LINEUP[name].stage);
+  // Only fetch bands not yet tried (cache stores {tried:true} even if no data found)
+  const needsFetch=allNames.filter(name=>!cache[name]||(!cache[name].tried));
   if(needsFetch.length===0){
     const withTime=Object.values(LINEUP).filter(i=>i.time).length;
     src.textContent=`✓ ${total} kunstnere · ${withTime} med spilletid`;
     src.className='data-source live';
-    renderDays();
     return;
   }
-  
-  // If cache covered most, render now and enrich remaining in background
-  if(cacheHits>total*0.3){
-    renderDays();
-  }
 
-  // Find a working proxy by testing with one known artist
+  // Find working proxy
   let workingProxy=null;
   const testUrl='https://www.roskilde-festival.dk/program/musik/gorillaz';
   for(const mk of PROXIES){
@@ -446,15 +445,14 @@ async function enrichArtistData(){
   }
 
   if(!workingProxy){
-    src.textContent=`⚠ Kunne ikke hente scener — viser cached data`;
-    src.className='data-source cached';
-    renderDays();return;
+    src.textContent=restored>0?`✓ ${total} kunstnere (fra cache)`:`⚠ Kunne ikke opdatere — prøv igen`;
+    src.className=restored>0?'data-source live':'data-source cached';
+    return;
   }
 
-  // Fetch only bands that still need data
+  // Fetch in batches
   let fetched=0;
   const BATCH=4;
-  const cacheUpdate={};
 
   for(let i=0;i<needsFetch.length;i+=BATCH){
     const batch=needsFetch.slice(i,i+BATCH);
@@ -463,39 +461,31 @@ async function enrichArtistData(){
       const pageUrl=`https://www.roskilde-festival.dk/program/musik/${slug}`;
       try{
         const r=await fetchWithTimeout(workingProxy(pageUrl),8000);
-        if(!r.ok)return;
+        if(!r.ok){cache[name]={tried:true};return}
         const html=await r.text();
-        if(html.length<500)return;
+        if(html.length<500){cache[name]={tried:true};return}
         const info=parseArtistPage(html);
         if(info.day)LINEUP[name].day=info.day;
         if(info.stage)LINEUP[name].stage=info.stage;
         if(info.time)LINEUP[name].time=info.time;
-        if(info.day||info.stage||info.time){
-          cacheUpdate[name]={day:info.day,stage:info.stage,time:info.time};
-          fetched++;
-        }
-      }catch(e){}
+        cache[name]={tried:true,day:info.day||'',stage:info.stage||'',time:info.time||''};
+        if(info.day||info.stage||info.time)fetched++;
+      }catch(e){/* don't mark as tried on network error — retry next time */}
     }));
 
     const done=Math.min(i+BATCH,needsFetch.length);
     src.textContent=`🔄 Vent lidt... opdaterer program ${done}/${needsFetch.length}`;
     src.className='data-source updating';
 
+    // Render every 4th batch
     if((i/BATCH)%4===3||i+BATCH>=needsFetch.length){
       renderDays();updateCounter();
     }
+    // Save cache progressively (so partial progress is saved even if page closed)
+    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
+    
     if(i+BATCH<needsFetch.length)await new Promise(r=>setTimeout(r,300));
   }
-
-  // Save to cache (merge with existing)
-  try{
-    const existing=JSON.parse(localStorage.getItem(cacheKey)||'{}');
-    // Also save all current LINEUP data
-    for(const name of allNames){
-      existing[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
-    }
-    localStorage.setItem(cacheKey,JSON.stringify(existing));
-  }catch(e){}
 
   // Final status
   const withDay=Object.values(LINEUP).filter(i=>i.day).length;
