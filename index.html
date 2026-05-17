@@ -401,7 +401,7 @@ async function enrichArtistData(){
   }
 
   // Restore from cache (skip already-enriched bands)
-  const cacheKey='rf26_v11';
+  const cacheKey='rf26_v12';
   try{
     const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
     let restored=0;
@@ -417,7 +417,7 @@ async function enrichArtistData(){
   }catch(e){}
 
   // Only fetch bands that still need enrichment
-  const needsFetch=allNames.filter(name=>!LINEUP[name].time&&!LINEUP[name].stage);
+  const needsFetch=allNames.filter(name=>!LINEUP[name].time||!LINEUP[name].stage);
   if(needsFetch.length===0){
     const withTime=Object.values(LINEUP).filter(i=>i.time).length;
     src.textContent=`✓ ${total} kunstnere · ${withTime} med spilletid`;
