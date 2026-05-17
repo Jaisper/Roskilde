@@ -87,10 +87,10 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .genre-chip{background:rgba(0,0,0,.1);border:2px solid rgba(255,255,255,.25);color:rgba(255,255,255,.75);padding:.5rem 1.1rem;font-family:'Oswald',sans-serif;font-size:1rem;font-weight:500;cursor:pointer;transition:all .15s ease;user-select:none;border-radius:3px;letter-spacing:.05em}
 .genre-chip:hover{border-color:#fff;color:#fff;background:rgba(0,0,0,.15)}
 .genre-chip.active{background:rgba(0,0,0,.25);border-color:#fff;color:#fff;font-weight:700}
-.timeline-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
+.timeline-wrap{overflow:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem;max-height:80vh;position:relative}
 .timeline-grid{display:grid;gap:1px}
-.timeline-header{position:sticky;top:0;z-index:10;font-family:'Oswald',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
-.timeline-header:first-child{position:sticky;left:0;z-index:15;background:var(--bg)}
+.timeline-header{position:sticky;top:0;z-index:12;font-family:'Oswald',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
+.timeline-header:first-child{position:sticky;left:0;top:0;z-index:15;background:var(--bg)}
 .timeline-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3)}
 .timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.65rem;color:var(--text-dim);padding:.1rem .2rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
 .timeline-time.hour{color:#ffd700;font-weight:700;font-size:.7rem;border-top:1px solid rgba(255,255,255,.06)}
@@ -630,7 +630,7 @@ function renderClassicDay(section,day,dayBands){
 
   const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
   
-  if(activeStages.length<=4){
+  if(activeStages.length<=4 && window.innerWidth>=700){
     // Few stages: side-by-side columns (like Copenhell)
     const sceneWrap=document.createElement('div');sceneWrap.className='scene-wrap';
     const sceneGrid=document.createElement('div');sceneGrid.className='scene-grid';
