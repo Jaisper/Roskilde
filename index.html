@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .day-date{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
 .day-count{margin-left:auto;font-size:.85rem;color:var(--text-dim);font-weight:600}.day-count span{color:#fff}
 .sort-indicator{font-size:.75rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;text-align:right;margin-bottom:.4rem}
-.band-grid{display:flex;flex-direction:column;gap:3px}
+.band-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px}
 .scene-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
 .scene-grid{display:grid;gap:3px}
 .scene-column{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -400,20 +400,19 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Restore from cache (skip already-enriched bands)
-  const cacheKey='rf26_v12';
+  // Restore from localStorage cache
+  const cacheKey='rf26_v13';
+  let cacheHits=0;
   try{
-    const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
-    let restored=0;
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||'{}');
     for(const name of allNames){
       if(cached[name]){
-        if(cached[name].day) LINEUP[name].day=cached[name].day;
+        if(cached[name].day&&!LINEUP[name].day) LINEUP[name].day=cached[name].day;
         if(cached[name].stage) LINEUP[name].stage=cached[name].stage;
         if(cached[name].time) LINEUP[name].time=cached[name].time;
-        restored++;
+        cacheHits++;
       }
     }
-    if(restored>0) renderDays();
   }catch(e){}
 
   // Only fetch bands that still need enrichment
@@ -422,7 +421,13 @@ async function enrichArtistData(){
     const withTime=Object.values(LINEUP).filter(i=>i.time).length;
     src.textContent=`✓ ${total} kunstnere · ${withTime} med spilletid`;
     src.className='data-source live';
+    renderDays();
     return;
+  }
+  
+  // If cache covered most, render now and enrich remaining in background
+  if(cacheHits>total*0.3){
+    renderDays();
   }
 
   // Find a working proxy by testing with one known artist
@@ -484,12 +489,12 @@ async function enrichArtistData(){
 
   // Save to cache (merge with existing)
   try{
-    const existing=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
+    const existing=JSON.parse(localStorage.getItem(cacheKey)||'{}');
     // Also save all current LINEUP data
     for(const name of allNames){
       existing[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
     }
-    sessionStorage.setItem(cacheKey,JSON.stringify(existing));
+    localStorage.setItem(cacheKey,JSON.stringify(existing));
   }catch(e){}
 
   // Final status
@@ -630,7 +635,7 @@ function renderClassicDay(section,day,dayBands){
 
   const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
   
-  if(activeStages.length<=4 && window.innerWidth>=900){
+  if(activeStages.length<=4 && window.innerWidth>=768){
     // Few stages: side-by-side columns (like Copenhell)
     const sceneWrap=document.createElement('div');sceneWrap.className='scene-wrap';
     const sceneGrid=document.createElement('div');sceneGrid.className='scene-grid';
