@@ -87,13 +87,13 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
 .genre-chip{background:rgba(0,0,0,.1);border:2px solid rgba(255,255,255,.25);color:rgba(255,255,255,.75);padding:.5rem 1.1rem;font-family:'Oswald',sans-serif;font-size:1rem;font-weight:500;cursor:pointer;transition:all .15s ease;user-select:none;border-radius:3px;letter-spacing:.05em}
 .genre-chip:hover{border-color:#fff;color:#fff;background:rgba(0,0,0,.15)}
 .genre-chip.active{background:rgba(0,0,0,.25);border-color:#fff;color:#fff;font-weight:700}
-.timeline-wrap{overflow:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem;max-height:80vh;position:relative}
+.timeline-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -.5rem;padding:0 .5rem}
 .timeline-grid{display:grid;gap:1px}
-.timeline-header{position:sticky;top:0;z-index:12;font-family:'Oswald',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.4rem .3rem;text-align:center;background:rgba(0,0,0,.12);border:1px solid var(--border);font-weight:600}
+.timeline-header{position:sticky;top:0;z-index:12;font-family:'Oswald',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:.5rem .3rem;text-align:center;background:var(--bg);border:1px solid var(--border);font-weight:600;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .timeline-header:first-child{position:sticky;left:0;top:0;z-index:15;background:var(--bg)}
 .timeline-header.main-stage{color:#fff;border-color:rgba(255,255,255,.3)}
-.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.65rem;color:var(--text-dim);padding:.1rem .2rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
-.timeline-time.hour{color:#ffd700;font-weight:700;font-size:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+.timeline-time{font-family:'Source Sans 3',sans-serif;font-size:.55rem;color:var(--text-dim);padding:.1rem .15rem;text-align:right;background:var(--bg);border-right:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;left:0;z-index:5}
+.timeline-time.hour{color:#ffd700;font-weight:700;font-size:.6rem;border-top:1px solid rgba(255,255,255,.06)}
 .timeline-slot{min-height:1.8rem;position:relative}
 .timeline-band{position:absolute;left:2px;right:2px;top:1px;background:rgba(0,0,0,.08);border:1px solid var(--border);border-radius:3px;padding:.2rem .4rem;display:flex;align-items:stretch;gap:.3rem;overflow:hidden;cursor:pointer;transition:all .15s;z-index:2}
 .timeline-band:hover{background:rgba(0,0,0,.15);border-color:rgba(255,255,255,.2);z-index:3}
@@ -558,9 +558,9 @@ function renderTimelineDay(section,day,dayBands,stages){
   const grid=document.createElement('div');
   grid.className='timeline-grid';
   if(window.innerWidth>=700){
-    grid.style.gridTemplateColumns=`2.5rem repeat(${stages.length}, 1fr)`;
+    grid.style.gridTemplateColumns=`1.8rem repeat(${stages.length}, 1fr)`;
   }else{
-    grid.style.gridTemplateColumns=`2.5rem repeat(${stages.length}, minmax(140px, 1fr))`;
+    grid.style.gridTemplateColumns=`1.8rem repeat(${stages.length}, minmax(140px, 1fr))`;
   }
 
   // Header row
@@ -630,7 +630,7 @@ function renderClassicDay(section,day,dayBands){
 
   const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
   
-  if(activeStages.length<=4 && window.innerWidth>=700){
+  if(activeStages.length<=4 && window.innerWidth>=900){
     // Few stages: side-by-side columns (like Copenhell)
     const sceneWrap=document.createElement('div');sceneWrap.className='scene-wrap';
     const sceneGrid=document.createElement('div');sceneGrid.className='scene-grid';
