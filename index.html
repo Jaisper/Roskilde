@@ -400,108 +400,96 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // Restore from localStorage cache (persists across sessions)
-  const cacheKey='rf26_data_v10';
+  // Restore from cache (skip already-enriched bands)
+  const cacheKey='rf26_v11';
   try{
-    const cached=JSON.parse(localStorage.getItem(cacheKey)||'{}');
+    const cached=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
+    let restored=0;
     for(const name of allNames){
       if(cached[name]){
-        if(cached[name].day&&!LINEUP[name].day)LINEUP[name].day=cached[name].day;
-        if(cached[name].stage)LINEUP[name].stage=cached[name].stage;
-        if(cached[name].time)LINEUP[name].time=cached[name].time;
+        if(cached[name].day) LINEUP[name].day=cached[name].day;
+        if(cached[name].stage) LINEUP[name].stage=cached[name].stage;
+        if(cached[name].time) LINEUP[name].time=cached[name].time;
+        restored++;
       }
     }
+    if(restored>0) renderDays();
   }catch(e){}
+
+  // Only fetch bands that still need enrichment
+  const needsFetch=allNames.filter(name=>!LINEUP[name].time&&!LINEUP[name].stage);
+  if(needsFetch.length===0){
+    const withTime=Object.values(LINEUP).filter(i=>i.time).length;
+    src.textContent=`✓ ${total} kunstnere · ${withTime} med spilletid`;
+    src.className='data-source live';
+    return;
+  }
 
   // Find a working proxy by testing with one known artist
   let workingProxy=null;
   const testUrl='https://www.roskilde-festival.dk/program/musik/gorillaz';
   for(const mk of PROXIES){
     try{
-      console.log(`[RF] Testing proxy: ${mk('TEST').substring(0,50)}...`);
       const r=await fetchWithTimeout(mk(testUrl),6000);
       if(r.ok){
         const html=await r.text();
-        const hasDay=html.includes('TORSDAG')||html.includes('Torsdag');
-        const hasStage=html.includes('Orange Scene');
-        console.log(`[RF] Proxy response: ${html.length} chars, hasDay=${hasDay}, hasStage=${hasStage}`);
-        if(hasDay&&hasStage){
-          workingProxy=mk;
-          console.log('[RF] ✓ Working proxy found!');
-          break;
-        } else {
-          console.log('[RF] ✗ Proxy returns HTML but without SSR data (empty Next.js shell)');
+        if((html.includes('TORSDAG')||html.includes('Torsdag'))&&(html.includes('Orange')||html.includes('Scene'))){
+          workingProxy=mk;break;
         }
       }
-    }catch(e){console.log(`[RF] ✗ Proxy failed: ${e.message}`)}
+    }catch(e){}
   }
 
   if(!workingProxy){
-    console.log('[RF] No working proxy for artist pages');
     src.textContent=`⚠ Kunne ikke hente scener — viser cached data`;
     src.className='data-source cached';
-    renderDays();
-    return;
+    renderDays();return;
   }
 
-  // Fetch artists that still need day/stage, using only the working proxy
-  const needsFetch=allNames.filter(n=>!LINEUP[n].day||!LINEUP[n].stage);
+  // Fetch only bands that still need data
   let fetched=0;
-
-  // Process in batches of 4 (conservative to avoid rate limits)
   const BATCH=4;
-  const newCache={};
+  const cacheUpdate={};
 
   for(let i=0;i<needsFetch.length;i+=BATCH){
     const batch=needsFetch.slice(i,i+BATCH);
-    const promises=batch.map(async name=>{
+    await Promise.all(batch.map(async name=>{
       const slug=LINEUP[name]._slug||makeSlug(name);
       const pageUrl=`https://www.roskilde-festival.dk/program/musik/${slug}`;
       try{
         const r=await fetchWithTimeout(workingProxy(pageUrl),8000);
-        if(!r.ok){console.log(`[RF] ${name}: HTTP ${r.status}`);return}
+        if(!r.ok)return;
         const html=await r.text();
-        if(html.length<500){console.log(`[RF] ${name}: too short (${html.length})`);return}
+        if(html.length<500)return;
         const info=parseArtistPage(html);
-        if(!info.day&&!info.stage){
-          // Debug: check what proxy returned
-          const hasDate=html.includes('juli')||html.includes('Juli')||html.includes('JULI')||html.includes('juni')||html.includes('Juni')||html.includes('JUNI');
-          const hasScene=html.includes('Scene')||html.includes('scene');
-          console.log(`[RF] ${name}: NO MATCH (html=${html.length}ch, hasDate=${hasDate}, hasScene=${hasScene})`);
-          if(!hasDate)console.log(`[RF] ${name}: proxy returned shell without SSR data`);
-        } else {
-          console.log(`[RF] ✓ ${name}: ${info.day}/${info.stage}`);
-        }
         if(info.day)LINEUP[name].day=info.day;
         if(info.stage)LINEUP[name].stage=info.stage;
         if(info.time)LINEUP[name].time=info.time;
-        newCache[name]={day:info.day,stage:info.stage,time:info.time};
-        fetched++;
-      }catch(e){console.log(`[RF] ${name}: error ${e.message}`)}
-    });
-    await Promise.all(promises);
+        if(info.day||info.stage||info.time){
+          cacheUpdate[name]={day:info.day,stage:info.stage,time:info.time};
+          fetched++;
+        }
+      }catch(e){}
+    }));
 
-    // Update status
     const done=Math.min(i+BATCH,needsFetch.length);
     src.textContent=`🔄 Vent lidt... opdaterer program ${done}/${needsFetch.length}`;
     src.className='data-source updating';
 
-    // Re-render every 4th batch to avoid flicker
-    if((i/BATCH)%4===3 || i+BATCH>=needsFetch.length){
+    if((i/BATCH)%4===3||i+BATCH>=needsFetch.length){
       renderDays();updateCounter();
     }
-
-    // Delay between batches
     if(i+BATCH<needsFetch.length)await new Promise(r=>setTimeout(r,300));
   }
 
-  // Save all to sessionStorage cache
+  // Save to cache (merge with existing)
   try{
-    const fullCache={};
+    const existing=JSON.parse(sessionStorage.getItem(cacheKey)||'{}');
+    // Also save all current LINEUP data
     for(const name of allNames){
-      fullCache[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
+      existing[name]={day:LINEUP[name].day,stage:LINEUP[name].stage,time:LINEUP[name].time||''};
     }
-    localStorage.setItem(cacheKey,JSON.stringify(fullCache));
+    sessionStorage.setItem(cacheKey,JSON.stringify(existing));
   }catch(e){}
 
   // Final status
@@ -642,39 +630,53 @@ function renderClassicDay(section,day,dayBands){
 
   const activeStages=STAGES_ORDER.filter(s=>dayBands.some(([_,i])=>i.stage===s));
   
-  const sceneWrap=document.createElement('div');
-  sceneWrap.className='scene-wrap';
-  const sceneGrid=document.createElement('div');
-  sceneGrid.className='scene-grid';
-  // Min 160px per column so names up to ~20 chars are readable
-  sceneGrid.style.gridTemplateColumns=`repeat(${activeStages.length}, minmax(160px, 1fr))`;
-  sceneWrap.appendChild(sceneGrid);
-  section.appendChild(sceneWrap);
+  if(activeStages.length<=4){
+    // Few stages: side-by-side columns (like Copenhell)
+    const sceneWrap=document.createElement('div');sceneWrap.className='scene-wrap';
+    const sceneGrid=document.createElement('div');sceneGrid.className='scene-grid';
+    sceneGrid.style.gridTemplateColumns=`repeat(${activeStages.length}, 1fr)`;
+    sceneWrap.appendChild(sceneGrid);section.appendChild(sceneWrap);
 
-  activeStages.forEach((stage,i)=>{
-    const col=document.createElement('div');col.className='scene-column';
-    const header=document.createElement('div');
-    header.className=`scene-header${stage==='Orange'?' main-stage':''}`;
-    header.textContent=stage;
-    col.appendChild(header);
+    activeStages.forEach((stage,i)=>{
+      const col=document.createElement('div');col.className='scene-column';
+      const header=document.createElement('div');
+      header.className=`scene-header${stage==='Orange'?' main-stage':''}`;
+      header.textContent=stage;col.appendChild(header);
 
-    const bands=dayBands.filter(([_,info])=>info.stage===stage).map(([n,info])=>({name:n,time:info.time||''}));
-    if(ht)bands.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
-    else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
-    bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},col));
+      const bands=dayBands.filter(([_,info])=>info.stage===stage).map(([n,info])=>({name:n,time:info.time||''}));
+      if(ht)bands.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
+      else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
+      bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},col));
+      sceneGrid.appendChild(col);
+    });
+  }else{
+    // Many stages: flat list grouped by stage (full width per band)
+    activeStages.forEach(stage=>{
+      const bands=dayBands.filter(([_,info])=>info.stage===stage).map(([n,info])=>({name:n,time:info.time||''}));
+      if(!bands.length)return;
+      if(ht)bands.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
+      else bands.sort((a,b)=>a.name.localeCompare(b.name,'da'));
 
-    if(!bands.length){const e=document.createElement('div');e.style.cssText='padding:.5rem;text-align:center;font-size:.55rem;color:rgba(255,255,255,.3)';e.textContent='—';col.appendChild(e)}
-    sceneGrid.appendChild(col);
-  });
+      const block=document.createElement('div');block.className='stage-block';
+      const lbl=document.createElement('div');
+      lbl.className=`stage-label${stage==='Orange'?' main-stage':''}`;
+      lbl.textContent=stage+' Scene';
+      block.appendChild(lbl);
+      const grid=document.createElement('div');grid.className='band-grid';
+      bands.forEach(b=>renderBandCard({name:b.name,stage,time:b.time},grid));
+      block.appendChild(grid);
+      section.appendChild(block);
+    });
+  }
 
   // Unknown stage bands
   const unknown=dayBands.filter(([_,i])=>!i.stage||!STAGES_ORDER.includes(i.stage)).map(([n,i])=>({name:n,stage:i.stage||'',time:i.time||''}));
   if(unknown.length){
     if(ht)unknown.sort((a,b)=>sortableTime(a.time).localeCompare(sortableTime(b.time)));
     else unknown.sort((a,b)=>a.name.localeCompare(b.name,'da'));
-    const block=document.createElement('div');block.className='band-grid';block.style.marginTop='6px';
     const lbl=document.createElement('div');lbl.className='stage-label unknown-label';lbl.textContent='Scene ikke annonceret';
     section.appendChild(lbl);
+    const block=document.createElement('div');block.className='band-grid';
     unknown.forEach(b=>renderBandCard(b,block));
     section.appendChild(block);
   }
