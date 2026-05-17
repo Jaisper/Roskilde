@@ -147,6 +147,7 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
   <div class="subtitle">28 Juni — 4 Juli 2026 · Roskilde · Danmark</div>
   <div class="year-badge">AI Kunstner Anbefaler</div>
   <div class="data-source" id="dataSource">Henter program...</div>
+  <div style="text-align:center;margin-top:.3rem"><a href="#" id="forceRefresh" style="font-size:.65rem;color:rgba(255,255,255,.3);text-decoration:none" onclick="event.preventDefault();localStorage.removeItem('rf26_v15');localStorage.removeItem('rf26_v15_ts');location.reload()">↻ Tving opdatering</a></div>
 </div>
 <div class="day-container" id="dayContainer"><div class="loading-indicator">Henter lineup</div></div>
 <div class="genre-section">
@@ -255,8 +256,38 @@ const LATEST_NAMES=[
 ];
 
 // ═══════════════════════════════════════════════════════
-// CACHED LINEUP — kun kunstnernavne som fallback
+// HARDCODED TIMETABLE — from roskilde-festival.dk/program/tidsplan + artist pages
+// Eliminates need for proxy enrichment on first load
+// ═══════════════════════════════════════════════════════
+const HARDCODED_SCHEDULE={
+  // === SØNDAG (First Days) - from tidsplan page ===
+  "Ozzy":{day:"fd_son",stage:"Eos",time:"14:15"},
+  "Ponny":{day:"fd_son",stage:"Lagune",time:"15:00"},
+  "Carlina de Place":{day:"fd_son",stage:"Eos",time:"15:45"},
+  "Portal Pets":{day:"fd_son",stage:"Lagune",time:"16:30"},
+  "Ana Juél":{day:"fd_son",stage:"Eos",time:"17:30"},
+  "Oskar Witt":{day:"fd_son",stage:"Lagune",time:"18:15"},
+  "Grande Mahogany":{day:"fd_son",stage:"Eos",time:"19:00"},
+  "Spawner":{day:"fd_son",stage:"Lagune",time:"19:45"},
+  "Kōya":{day:"fd_son",stage:"Eos",time:"20:30"},
+  "Scam":{day:"fd_son",stage:"Lagune",time:"21:15"},
+  "Smøgmænd":{day:"fd_son",stage:"Eos",time:"22:15"},
+  "Club Live":{day:"fd_son",stage:"Lagune",time:"23:00"},
+  "Miaw":{day:"fd_son",stage:"Eos",time:"23:45"},
+  // === From individual artist pages ===
+  "Gorillaz":{day:"tor",stage:"Orange",time:"22:00"},
+  "The Cure":{day:"ons",stage:"Orange",time:"22:00"},
+  "The Savage Rose":{day:"fre",stage:"Eos",time:"15:00"},
+  "Luisa Almaguer":{day:"fre",stage:"Gloria",time:"18:30"},
+  "Aphaca":{day:"fre",stage:"Arena",time:"01:00"},
+  "Addison Rae":{day:"fre",stage:"Orange",time:"19:00"},
+  "Tessa":{day:"fre",stage:"Orange",time:"16:00"},
+  "Pil":{day:"ons",stage:"Orange",time:"17:30"},
+};
 // Dag + scene hentes ALTID live fra individuelle kunstnersider
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// CACHED LINEUP — kun kunstnernavne som fallback
 // ═══════════════════════════════════════════════════════
 const CACHED_NAMES=[
   "Gorillaz","The Cure","Zara Larsson","Addison Rae","David Byrne","Ethel Cain",
@@ -400,32 +431,27 @@ async function enrichArtistData(){
       .replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   }
 
-  // ── CACHE: localStorage med "already tried" tracking ──
-  const cacheKey='rf26_v14';
+  const cacheKey='rf26_v15';
   let cache={};
   try{cache=JSON.parse(localStorage.getItem(cacheKey)||'{}')}catch(e){}
+
+  // Check cache age — re-enrich after 24 hours
+  const CACHE_TTL=24*60*60*1000; // 24 hours
+  const cacheTime=parseInt(localStorage.getItem(cacheKey+'_ts')||'0');
+  const cacheExpired=Date.now()-cacheTime>CACHE_TTL;
   
-  // Restore cached data
-  let restored=0;
-  for(const name of allNames){
-    if(cache[name]){
-      if(cache[name].day&&!LINEUP[name].day) LINEUP[name].day=cache[name].day;
-      if(cache[name].stage) LINEUP[name].stage=cache[name].stage;
-      if(cache[name].time) LINEUP[name].time=cache[name].time;
-      restored++;
+  // If cache expired, clear 'tried' flags to force re-fetch
+  if(cacheExpired&&cacheTime>0){
+    for(const name of Object.keys(cache)){
+      if(cache[name])cache[name].tried=false;
     }
-  }
-  
-  if(restored>0){
-    renderDays();updateCounter();
+    src.textContent=`🔄 Cache udløbet — opdaterer i baggrunden...`;
+    src.className='data-source updating';
   }
 
-  // Only fetch bands not yet tried (cache stores {tried:true} even if no data found)
+  // Only fetch bands not yet tried
   const needsFetch=allNames.filter(name=>!cache[name]||(!cache[name].tried));
   if(needsFetch.length===0){
-    const withTime=Object.values(LINEUP).filter(i=>i.time).length;
-    src.textContent=`✓ ${total} kunstnere · ${withTime} med spilletid`;
-    src.className='data-source live';
     return;
   }
 
@@ -482,7 +508,7 @@ async function enrichArtistData(){
       renderDays();updateCounter();
     }
     // Save cache progressively (so partial progress is saved even if page closed)
-    try{localStorage.setItem(cacheKey,JSON.stringify(cache))}catch(e){}
+    try{localStorage.setItem(cacheKey,JSON.stringify(cache));localStorage.setItem(cacheKey+'_ts',String(Date.now()))}catch(e){}
     
     if(i+BATCH<needsFetch.length)await new Promise(r=>setTimeout(r,300));
   }
@@ -933,8 +959,34 @@ async function init(){
     if(fdSet.has(name.toLowerCase())&&!info.day) info.day='first_days';
   }
 
-  // Render immediately with whatever data we have
+  // Apply hardcoded timetable data (always, overrides empty fields)
+  for(const[name,data]of Object.entries(HARDCODED_SCHEDULE)){
+    const key=Object.keys(LINEUP).find(k=>k.toLowerCase()===name.toLowerCase());
+    if(key){
+      if(data.day) LINEUP[key].day=data.day;
+      if(data.stage) LINEUP[key].stage=data.stage;
+      if(data.time) LINEUP[key].time=data.time;
+    }
+  }
+
+  // Apply localStorage cache (supplements hardcoded data with enrichment results)
+  try{
+    const cached=JSON.parse(localStorage.getItem('rf26_v15')||'{}');
+    for(const[name,data]of Object.entries(cached)){
+      if(LINEUP[name]){
+        if(data.day&&!LINEUP[name].day) LINEUP[name].day=data.day;
+        if(data.stage&&!LINEUP[name].stage) LINEUP[name].stage=data.stage;
+        if(data.time&&!LINEUP[name].time) LINEUP[name].time=data.time;
+      }
+    }
+  }catch(e){}
+
+  // Render immediately — data is available from hardcoded + cache
   renderDays();updateCounter();
+  const withTime=Object.values(LINEUP).filter(i=>i.time).length;
+  const withDay=Object.values(LINEUP).filter(i=>i.day).length;
+  src.textContent=`✓ ${Object.keys(LINEUP).length} kunstnere · ${withDay} med dag · ${withTime} med spilletid`;
+  src.className='data-source live';
 
   // Genre chip click handlers
   document.querySelectorAll('.genre-chip').forEach(chip=>{
