@@ -147,7 +147,8 @@ body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-ser
   <div class="subtitle">28 Juni — 4 Juli 2026 · Roskilde · Danmark</div>
   <div class="year-badge">AI Kunstner Anbefaler</div>
   <div class="data-source" id="dataSource">Henter program...</div>
-  <div style="text-align:center;margin-top:.3rem"><a href="#" id="forceRefresh" style="font-size:.65rem;color:rgba(255,255,255,.3);text-decoration:none" onclick="event.preventDefault();localStorage.removeItem('rf26_v15');localStorage.removeItem('rf26_v15_ts');location.reload()">↻ Tving opdatering</a></div>
+  <div style="text-align:center;margin-top:.3rem"><a href="#" id="forceRefresh" style="font-size:.65rem;color:rgba(255,255,255,.3);text-decoration:none">↻ Tving opdatering</a></div>
+<script>document.getElementById('forceRefresh').addEventListener('click',function(e){e.preventDefault();try{localStorage.removeItem('rf26_v15');localStorage.removeItem('rf26_v15_ts')}catch(ex){}location.reload()})</script>
 </div>
 <div class="day-container" id="dayContainer"><div class="loading-indicator">Henter lineup</div></div>
 <div class="genre-section">
@@ -437,7 +438,8 @@ async function enrichArtistData(){
 
   // Check cache age — re-enrich after 24 hours
   const CACHE_TTL=24*60*60*1000; // 24 hours
-  const cacheTime=parseInt(localStorage.getItem(cacheKey+'_ts')||'0');
+  let cacheTime=0;
+  try{cacheTime=parseInt(localStorage.getItem(cacheKey+'_ts')||'0')}catch(e){}
   const cacheExpired=Date.now()-cacheTime>CACHE_TTL;
   
   // If cache expired, clear 'tried' flags to force re-fetch
@@ -769,13 +771,14 @@ function toggleBand(b,c){if(selected.has(b)){selected.delete(b);c.classList.remo
 function updateCounter(){const b=selected.size,g=selectedGenres.size,pf=(document.getElementById('personalFavs')?.value||'').split(',').map(s=>s.trim()).filter(s=>s).length,p=[];if(b>0)p.push(b+' kunstner'+(b>1?'e':''));if(g>0)p.push(g+' genre'+(g>1?'r':''));if(pf>0)p.push(pf+' egne favorit'+(pf>1?'ter':''));document.getElementById('favText').textContent=p.length>0?'Valgte: '+p.join(' · '):'Vælg kunstnere, genrer og/eller egne favoritter';document.getElementById('recBtn').disabled=b<1&&g<1&&pf<1}
 function clearSelections(){selected.clear();selectedGenres.clear();recommended.clear();document.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('active'));document.getElementById('personalFavs').value='';renderDays();updateCounter();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
 function clearRecommendations(){recommended.clear();renderDays();document.getElementById('results').classList.add('hidden');document.getElementById('clearRecBtn').classList.add('hidden')}
-function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(!k.startsWith('gsk_')){document.getElementById('apiStatus').textContent='✗ Nøglen skal starte med gsk_';document.getElementById('apiStatus').style.color='#c23c2c';return}localStorage.setItem('groq_api_key',k);document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84'}
+function saveApiKey(){const k=document.getElementById('apiKey').value.trim();if(!k.startsWith('gsk_')){document.getElementById('apiStatus').textContent='✗ Nøglen skal starte med gsk_';document.getElementById('apiStatus').style.color='#c23c2c';return}try{localStorage.setItem('groq_api_key',k)}catch(e){}document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84'}
 
 // ═══════════════════════════════════════════════════════
 // AI RECOMMENDATIONS
 // ═══════════════════════════════════════════════════════
 async function getRecommendations(){
-  const apiKey=localStorage.getItem('groq_api_key')||document.getElementById('apiKey').value.trim();
+  let apiKey='';try{apiKey=localStorage.getItem('groq_api_key')||''}catch(e){}
+  apiKey=apiKey||document.getElementById('apiKey').value.trim();
   if(!apiKey){document.getElementById('apiBox').setAttribute('open','');document.getElementById('apiStatus').textContent='✗ Indtast Groq API nøgle';document.getElementById('apiStatus').style.color='#c23c2c';return}
   const fav=Array.from(selected),rem=Object.keys(LINEUP).filter(b=>!selected.has(b));
   const personalRaw=document.getElementById('personalFavs').value.trim();
@@ -903,13 +906,14 @@ function displayRecommendations(recs){
 // BOOT
 // ═══════════════════════════════════════════════════════
 async function init(){
-  const sk=localStorage.getItem('groq_api_key');
+  // Safari private mode throws on localStorage — wrap everything
+  let sk,savedModel;
+  try{sk=localStorage.getItem('groq_api_key')}catch(e){}
   if(sk){document.getElementById('apiKey').value=sk;document.getElementById('apiStatus').textContent='✓ Nøgle gemt';document.getElementById('apiStatus').style.color='#3ddc84';document.getElementById('apiBox').removeAttribute('open')}
-  // Restore saved model
-  const savedModel=localStorage.getItem('groq_model');
+  try{savedModel=localStorage.getItem('groq_model')}catch(e){}
   if(savedModel)document.getElementById('modelSelect').value=savedModel;
   document.getElementById('modelSelect').addEventListener('change',function(){
-    localStorage.setItem('groq_model',this.value);
+    try{localStorage.setItem('groq_model',this.value)}catch(e){}
     const hints={'openai/gpt-oss-120b':'OpenAI\'s åbne model — bedst til korrekte beskrivelser','compound-beta':'Søger på nettet — langsom, rammer ofte rate limit','llama-3.3-70b-versatile':'Hurtig men kan hallucinere om ukendte kunstnere','llama-3.1-8b-instant':'Ultra-hurtig men lavere kvalitet'};
     document.getElementById('modelHint').textContent=hints[this.value]||'';
   });
