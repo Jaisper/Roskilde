@@ -467,18 +467,19 @@ function parseArtistPage(html){
 async function enrichArtistData(){
   const src=document.getElementById('dataSource');
   const allBands=Object.entries(LINEUP);
-  const cacheKey='rf26_times_v1';
+  const cacheKey='rf26_times_v2';
   let cache={};try{cache=JSON.parse(localStorage.getItem(cacheKey)||'{}')}catch(e){}
-  // Restore cached times
+  // Restore cached data
   let restored=0;
   for(const[name,info]of allBands){
     if(cache[name]&&cache[name].time&&!info.time){LINEUP[name].time=cache[name].time;restored++}
     if(cache[name]&&cache[name].stage&&!info.stage){LINEUP[name].stage=cache[name].stage;restored++}
-    if(cache[name]&&cache[name].day&&!info.day){LINEUP[name].day=cache[name].day;restored++}
+    // Overwrite generic 'first_days' with specific day from cache
+    if(cache[name]&&cache[name].day&&(!info.day||info.day==='first_days')){LINEUP[name].day=cache[name].day;restored++}
   }
   if(restored>0)renderDays();
   // Only fetch bands without time+stage that have a slug
-  const needsFetch=allBands.filter(([_,i])=>(!i.time||!i.stage)&&i._slug&&!cache[_+'_tried']);
+  const needsFetch=allBands.filter(([n,i])=>i._slug&&!(cache[n]&&cache[n].tried)&&(!i.time||!i.stage||i.day==='first_days'));
   if(!needsFetch.length)return;
   // Find proxy
   let wp=null;
@@ -491,14 +492,15 @@ async function enrichArtistData(){
     await Promise.all(batch.map(async([name,info])=>{
       try{
         const r=await fetchWithTimeout(wp(`https://www.roskilde-festival.dk/program/musik/${info._slug}`),8000);
-        if(!r.ok)return;const html=await r.text();if(html.length<500)return;
+        if(!r.ok){cache[name]={tried:true};return}
+        const html=await r.text();if(html.length<500){cache[name]={tried:true};return}
         const p=parseArtistPage(html);
-        if(p.day&&!LINEUP[name].day)LINEUP[name].day=p.day;
-        if(p.stage)LINEUP[name].stage=p.stage;
-        if(p.time)LINEUP[name].time=p.time;
-        cache[name]={day:p.day,stage:p.stage,time:p.time};fetched++;
-      }catch(e){}
-      try{localStorage.setItem(name+'_tried','1')}catch(e){}
+        // Always update day (overwrite 'first_days' with specific day like 'fd_son')
+        if(p.day) LINEUP[name].day=p.day;
+        if(p.stage) LINEUP[name].stage=p.stage;
+        if(p.time) LINEUP[name].time=p.time;
+        cache[name]={tried:true,day:p.day,stage:p.stage,time:p.time};fetched++;
+      }catch(e){/* network error — don't mark as tried, retry next time */}
     }));
     const done=Math.min(i+BATCH,needsFetch.length);
     src.textContent=`🔄 Vent lidt... opdaterer ${done}/${needsFetch.length}`;
