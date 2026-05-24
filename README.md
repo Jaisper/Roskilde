@@ -6,7 +6,7 @@
 
 ## Features
 
-- 🎵 **175+ kunstnere** — komplet lineup inkl. First Days (28-30 juni) og Final Days (1-4 juli)
+- 🎵 **178 kunstnere** — komplet lineup inkl. First Days (28-30 juni) og Final Days (1-4 juli)
 - 📅 **Dag-opdeling** — Søndag/Mandag/Tirsdag (First Days) + Onsdag til Lørdag (Final Days)
 - 🎤 **7 scener** — Orange, Arena, Gloria, Eos, Fauna, Lagune, Platform
 - 🕐 **Tidsplan-visning** — toggle mellem listevisning og tidslinje-grid med sticky headers
